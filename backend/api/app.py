@@ -7,6 +7,12 @@ import hashlib
 import hmac
 import json
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from twilio.rest import Client
+import secrets
+
+# Load environment variables
+load_dotenv()
 
 # Add parent directory to path to import geospatial module
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -44,11 +50,32 @@ swagger = Swagger(app, config=swagger_config, template=swagger_template)
 # Initialize validator
 validator = LocationValidator(max_distance_miles=0.25)
 
+# Initialize Twilio client (will be None if credentials not set)
+try:
+    twilio_client = Client(
+        os.getenv('TWILIO_ACCOUNT_SID'),
+        os.getenv('TWILIO_AUTH_TOKEN')
+    )
+    twilio_verify_service = os.getenv('TWILIO_VERIFY_SERVICE_SID')
+except Exception as e:
+    print(f"Warning: Twilio not configured - {e}")
+    twilio_client = None
+    twilio_verify_service = None
+
 # Mock user location database (in production, this would be real-time from mobile app)
 mock_user_locations = {
-    "4532-1234-5678-9012": (42.3770, -71.1167),  # Harvard campus
-    "5412-9876-5432-1098": (37.7749, -122.4194),  # San Francisco
+    "4532-1234-5678-9012": {
+        "location": (42.3770, -71.1167),  # Harvard campus
+        "phone": "+19738678884"
+    },
+    "5412-9876-5432-1098": {
+        "location": (37.7749, -122.4194),  # San Francisco
+        "phone": "+19738678884"
+    }
 }
+
+# In-memory storage for pending 2FA transactions
+pending_2fa_transactions = {}
 
 # Mock device registry (card_token -> public_key mapping)
 device_registry = {
@@ -156,14 +183,17 @@ def validate_transaction():
                 'required': ['card_number', 'amount', 'transaction_location']
             }), 400
 
-        # Get user's phone location (mock)
-        phone_location = mock_user_locations.get(card_number)
+        # Get user data
+        user_data = mock_user_locations.get(card_number)
 
-        if not phone_location:
+        if not user_data:
             return jsonify({
                 'error': 'Card not registered',
                 'message': 'This card is not linked to a phone location'
             }), 404
+
+        phone_location = user_data['location']
+        phone_number = user_data['phone']
 
         # Extract transaction coordinates
         trans_lat = transaction_location.get('latitude')
@@ -179,9 +209,54 @@ def validate_transaction():
         trans_coords = (trans_lat, trans_lon)
         validation_result = validator.validate_transaction(phone_location, trans_coords)
 
-        # Build response
+        # Check if 2FA is required for high-value transactions
+        if amount > 100:
+            # Generate transaction ID
+            transaction_id = secrets.token_urlsafe(16)
+
+            # Store pending transaction
+            pending_2fa_transactions[transaction_id] = {
+                'card_number': card_number,
+                'amount': amount,
+                'merchant_name': merchant_name,
+                'phone_location': phone_location,
+                'transaction_location': trans_coords,
+                'validation_result': validation_result,
+                'phone_number': phone_number,
+                'timestamp': datetime.utcnow()
+            }
+
+            # Send SMS verification if Twilio is configured
+            if twilio_client and twilio_verify_service:
+                try:
+                    verification = twilio_client.verify.v2.services(twilio_verify_service) \
+                        .verifications.create(
+                            to=phone_number,
+                            channel='sms'
+                        )
+
+                    return jsonify({
+                        'requires_2fa': True,
+                        'transaction_id': transaction_id,
+                        'message': f'Verification code sent to {phone_number}',
+                        'amount': amount,
+                        'merchant_name': merchant_name
+                    }), 200
+                except Exception as e:
+                    return jsonify({
+                        'error': 'Failed to send verification code',
+                        'message': str(e)
+                    }), 500
+            else:
+                return jsonify({
+                    'error': 'Twilio not configured',
+                    'message': 'Please set up Twilio credentials in .env file'
+                }), 500
+
+        # Build response for transactions not requiring 2FA
         response = {
             'transaction_approved': validation_result['valid'],
+            'requires_2fa': False,
             'card_number': card_number,
             'amount': amount,
             'merchant_name': merchant_name,
@@ -262,14 +337,150 @@ def register_card():
                 'message': 'Latitude and longitude required'
             }), 400
 
+        phone_number = data.get('phone_number', '+1234567890')  # Default for now
+
         # Store in mock database
-        mock_user_locations[card_number] = (lat, lon)
+        mock_user_locations[card_number] = {
+            'location': (lat, lon),
+            'phone': phone_number
+        }
 
         return jsonify({
             'message': 'Card registered successfully',
             'card_number': card_number,
-            'location': {'latitude': lat, 'longitude': lon}
+            'location': {'latitude': lat, 'longitude': lon},
+            'phone': phone_number
         }), 201
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/transaction/verify-2fa', methods=['POST'])
+def verify_2fa():
+    """
+    Verify 2FA code for high-value transaction
+    ---
+    tags:
+      - Transactions
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - transaction_id
+            - verification_code
+          properties:
+            transaction_id:
+              type: string
+              example: "abc123def456"
+            verification_code:
+              type: string
+              example: "123456"
+    responses:
+      200:
+        description: Transaction validation result after 2FA
+        schema:
+          type: object
+          properties:
+            transaction_approved:
+              type: boolean
+            verification_status:
+              type: string
+      404:
+        description: Transaction not found
+      400:
+        description: Invalid verification code
+    """
+    try:
+        data = request.get_json()
+        transaction_id = data.get('transaction_id')
+        verification_code = data.get('verification_code')
+
+        if not all([transaction_id, verification_code]):
+            return jsonify({
+                'error': 'Missing required fields',
+                'required': ['transaction_id', 'verification_code']
+            }), 400
+
+        # Get pending transaction
+        pending_tx = pending_2fa_transactions.get(transaction_id)
+
+        if not pending_tx:
+            return jsonify({
+                'error': 'Transaction not found',
+                'message': 'Invalid or expired transaction ID'
+            }), 404
+
+        # Check if transaction is too old (5 minutes timeout)
+        if (datetime.utcnow() - pending_tx['timestamp']).total_seconds() > 300:
+            del pending_2fa_transactions[transaction_id]
+            return jsonify({
+                'error': 'Transaction expired',
+                'message': 'Please initiate a new transaction'
+            }), 400
+
+        # Verify code with Twilio
+        if twilio_client and twilio_verify_service:
+            try:
+                verification_check = twilio_client.verify.v2.services(twilio_verify_service) \
+                    .verification_checks.create(
+                        to=pending_tx['phone_number'],
+                        code=verification_code
+                    )
+
+                if verification_check.status == 'approved':
+                    # Get validation result from pending transaction
+                    validation_result = pending_tx['validation_result']
+                    phone_location = pending_tx['phone_location']
+                    trans_coords = pending_tx['transaction_location']
+
+                    # Build final response
+                    response = {
+                        'transaction_approved': validation_result['valid'],
+                        'verification_status': 'approved',
+                        'card_number': pending_tx['card_number'],
+                        'amount': pending_tx['amount'],
+                        'merchant_name': pending_tx['merchant_name'],
+                        'validation_details': {
+                            'phone_location': {
+                                'latitude': phone_location[0],
+                                'longitude': phone_location[1]
+                            },
+                            'transaction_location': {
+                                'latitude': trans_coords[0],
+                                'longitude': trans_coords[1]
+                            },
+                            'distance_miles': validation_result['distance_miles'],
+                            'reason': validation_result['reason']
+                        }
+                    }
+
+                    # Clean up pending transaction
+                    del pending_2fa_transactions[transaction_id]
+
+                    return jsonify(response), 200
+                else:
+                    return jsonify({
+                        'error': 'Verification failed',
+                        'message': 'Invalid verification code',
+                        'verification_status': verification_check.status
+                    }), 400
+
+            except Exception as e:
+                return jsonify({
+                    'error': 'Verification error',
+                    'message': str(e)
+                }), 500
+        else:
+            return jsonify({
+                'error': 'Twilio not configured',
+                'message': 'Please set up Twilio credentials'
+            }), 500
 
     except Exception as e:
         return jsonify({
