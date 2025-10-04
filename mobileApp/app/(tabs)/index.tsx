@@ -22,11 +22,21 @@ export default function HomeScreen() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [locationUpdateCount, setLocationUpdateCount] = useState(0);
 
   useEffect(() => {
     checkRegistration();
     getCurrentLocation();
     connectWebSocket();
+  }, []);
+
+  // Set up real-time location updates every 5 seconds
+  useEffect(() => {
+    const locationInterval = setInterval(() => {
+      getCurrentLocation();
+    }, 5000);
+
+    return () => clearInterval(locationInterval);
   }, []);
 
   const connectWebSocket = async () => {
@@ -66,14 +76,22 @@ export default function HomeScreen() {
               "expo-location"
             );
             const pos = await getCurrentPositionAsync({
-              accuracy: Accuracy.High,
-              maximumAge: 10000,
-              timeout: 15000,
+              accuracy: Accuracy.High, // High accuracy but faster than BestForNavigation
+              maximumAge: 3000, // 3 seconds - fresh but not too restrictive
+              timeout: 8000, // 8 seconds - reasonable timeout
             } as any);
             setLocation({
               lat: pos.coords.latitude,
               lon: pos.coords.longitude,
             });
+            setLocationUpdateCount((prev) => prev + 1);
+            console.log(
+              `📍 Location updated: ${pos.coords.latitude.toFixed(
+                8
+              )}, ${pos.coords.longitude.toFixed(8)} (Update #${
+                locationUpdateCount + 1
+              })`
+            );
           }
         }
       }
@@ -84,6 +102,10 @@ export default function HomeScreen() {
         lat: 42.3601, // Boston, MA coordinates
         lon: -71.0589,
       });
+      setLocationUpdateCount((prev) => prev + 1);
+      console.log(
+        `📍 Location fallback used (Update #${locationUpdateCount + 1})`
+      );
     }
   };
 
@@ -167,11 +189,24 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Location</Text>
+        <View style={styles.locationHeader}>
+          <Text style={styles.cardTitle}>Location (Live Updates)</Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={getCurrentLocation}
+          >
+            <Text style={styles.refreshButtonText}>🔄</Text>
+          </TouchableOpacity>
+        </View>
         {location ? (
-          <Text style={styles.locationText}>
-            📍 {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
-          </Text>
+          <>
+            <Text style={styles.locationText}>
+              📍 {location.lat.toFixed(8)}, {location.lon.toFixed(8)}
+            </Text>
+            <Text style={styles.updateInfo}>
+              Updates every 5 seconds • Count: {locationUpdateCount}
+            </Text>
+          </>
         ) : (
           <Text style={styles.locationText}>📍 Location not available</Text>
         )}
@@ -273,6 +308,30 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 16,
     color: "#333",
+  },
+  updateInfo: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  locationHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  refreshButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  refreshButtonText: {
+    fontSize: 18,
+    color: "white",
   },
   input: {
     borderWidth: 1,

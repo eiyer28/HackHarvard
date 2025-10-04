@@ -68,8 +68,14 @@ except Exception as e:
 # Mock user location database (in production, this would be real-time from mobile app)
 # Updated to use actual phone location from debug output
 mock_user_locations = {
-    "4532-1234-5678-9012": (42.380992732253446, -71.1251378073866),  # Actual phone location (near Harvard)
-    "5412-9876-5432-1098": (37.7749, -122.4194),  # San Francisco
+    "4532-1234-5678-9012": {
+        'location': (42.380992732253446, -71.1251378073866),  # Actual phone location (near Harvard)
+        'phone': '+1234567890'
+    },
+    "5412-9876-5432-1098": {
+        'location': (37.7749, -122.4194),  # San Francisco
+        'phone': '+1234567891'
+    }
 }
 
 # Mock device registry (card_token -> key_info mapping)
@@ -390,8 +396,8 @@ def verify_location_proof(location_proof, pending_transaction):
             }
 
         # Validate location proximity - compare mobile app location vs POS location
-        mobile_app_coords = (location['lat'], location['lon'])
-        pos_coords = (pos_location['lat'], pos_location['lon'])
+        mobile_app_coords = (round(float(location['lat']), 8), round(float(location['lon']), 8))
+        pos_coords = (round(float(pos_location['lat']), 8), round(float(pos_location['lon']), 8))
         
         # DEBUG: Log the coordinates being used
         print(f"\n=== LOCATION VALIDATION DEBUG (verify_location_proof) ===")
@@ -506,17 +512,21 @@ def validate_transaction():
         user_data = mock_user_locations.get(card_number)
 
         if not user_data:
-            return jsonify({
-                'error': 'Card not registered',
-                'message': 'This card is not linked to a phone location'
-            }), 404
+            # For demo purposes, create a default location for any new card
+            # In production, this would require proper registration
+            default_location = (42.3770, -71.1167)  # Harvard Square default
+            mock_user_locations[card_number] = {
+                'location': default_location,
+                'phone': '+1234567890'
+            }
+            user_data = mock_user_locations[card_number]
 
         phone_location = user_data['location']
         phone_number = user_data['phone']
 
-        # Extract transaction coordinates
-        trans_lat = transaction_location.get('latitude')
-        trans_lon = transaction_location.get('longitude')
+        # Extract transaction coordinates with 8 decimal precision
+        trans_lat = round(float(transaction_location.get('latitude')), 8)
+        trans_lon = round(float(transaction_location.get('longitude')), 8)
 
         if trans_lat is None or trans_lon is None:
             return jsonify({
@@ -1015,16 +1025,20 @@ def prove_location():
             }), 400
 
         # Get stored phone location
-        phone_location = mock_user_locations.get(card_token)
-        if not phone_location:
-            return jsonify({
-                'success': False,
-                'result': 'DENY',
-                'reason': 'Phone location not available'
-            }), 400
+        user_data = mock_user_locations.get(card_token)
+        if not user_data:
+            # For demo purposes, create a default location for any new card
+            default_location = (42.3770, -71.1167)  # Harvard Square default
+            mock_user_locations[card_token] = {
+                'location': default_location,
+                'phone': '+1234567890'
+            }
+            user_data = mock_user_locations[card_token]
+        
+        phone_location = user_data['location']
 
-        # Validate location proximity
-        trans_coords = (location['lat'], location['lon'])
+        # Validate location proximity with 8 decimal precision
+        trans_coords = (round(float(location['lat']), 8), round(float(location['lon']), 8))
         
         # DEBUG: Log the coordinates being used
         print(f"\n=== LOCATION VALIDATION DEBUG (prove_location) ===")

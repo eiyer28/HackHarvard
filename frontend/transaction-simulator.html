@@ -211,14 +211,12 @@
       <form id="transactionForm">
         <div class="form-group">
           <label for="cardNumber">Credit Card Number</label>
-          <select id="cardNumber">
-            <option value="4532-1234-5678-9012">
-              4532-1234-5678-9012 (Harvard Campus)
-            </option>
-            <option value="5412-9876-5432-1098">
-              5412-9876-5432-1098 (San Francisco)
-            </option>
-          </select>
+          <input
+            type="text"
+            id="cardNumber"
+            placeholder="Enter any credit card number"
+            value="4532-1234-5678-9012"
+          />
         </div>
 
         <div class="form-group">
@@ -433,8 +431,8 @@
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
 
-            document.getElementById("latitude").value = lat.toFixed(6);
-            document.getElementById("longitude").value = lon.toFixed(6);
+            document.getElementById("latitude").value = lat.toFixed(8);
+            document.getElementById("longitude").value = lon.toFixed(8);
 
             // Reset button
             btn.textContent = "✓ Location Set";
@@ -517,8 +515,8 @@
               transaction_id: currentTransactionId,
               transaction_nonce: transactionNonce,
               pos_location: {
-                lat: latitude,
-                lon: longitude,
+                lat: parseFloat(latitude.toFixed(8)),
+                lon: parseFloat(longitude.toFixed(8)),
               },
               amount: amount,
               merchant_name: merchantName,
