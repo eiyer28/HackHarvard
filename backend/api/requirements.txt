@@ -3,3 +3,5 @@ flask-cors==4.0.0
 flask-socketio==5.3.6
 geopy==2.4.1
 flasgger==0.9.7.1
+twilio==9.0.0
+python-dotenv==1.0.0
