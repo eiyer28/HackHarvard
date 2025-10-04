@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #FAF3E0;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -30,16 +30,108 @@
             padding: 40px;
         }
 
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            max-width: 200px;
+            height: auto;
+        }
+
         h1 {
-            color: #333;
+            color: #005CB4;
             margin-bottom: 10px;
             font-size: 28px;
+            text-align: center;
         }
 
         .subtitle {
-            color: #666;
+            color: #333333;
             margin-bottom: 30px;
             font-size: 14px;
+            text-align: center;
+        }
+
+        /* Landing Page Styles */
+        .landing-page {
+            text-align: center;
+            display: block;
+        }
+
+        .landing-page.hidden {
+            display: none;
+        }
+
+        .landing-hero {
+            margin-bottom: 30px;
+        }
+
+        .landing-title {
+            font-size: 36px;
+            color: #005CB4;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .landing-subtitle {
+            font-size: 18px;
+            color: #333333;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .landing-features {
+            text-align: left;
+            margin: 30px 0;
+            background: #FAF3E0;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .feature-item {
+            margin: 15px 0;
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .feature-text {
+            color: #333333;
+            font-size: 15px;
+        }
+
+        .start-demo-btn {
+            width: 100%;
+            padding: 16px;
+            background: #005CB4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            margin-top: 20px;
+        }
+
+        .start-demo-btn:hover {
+            background: #004494;
+            transform: translateY(-2px);
+        }
+
+        .demo-form {
+            display: none;
+        }
+
+        .demo-form.active {
+            display: block;
         }
 
         .form-group {
@@ -48,7 +140,7 @@
 
         label {
             display: block;
-            color: #333;
+            color: #333333;
             font-weight: 600;
             margin-bottom: 8px;
             font-size: 14px;
@@ -65,7 +157,7 @@
 
         input:focus, select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #005CB4;
         }
 
         .location-grid {
@@ -81,6 +173,36 @@
             margin-top: 10px;
         }
 
+        .location-button-container {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .use-location-btn {
+            padding: 12px 24px;
+            background: #EFC90A;
+            color: #333333;
+            border: 2px solid #EFC90A;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .use-location-btn:hover {
+            background: #d9b509;
+            border-color: #d9b509;
+            transform: translateY(-2px);
+        }
+
+        .use-location-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .preset-btn {
             padding: 10px;
             background: #f5f5f5;
@@ -92,23 +214,27 @@
         }
 
         .preset-btn:hover {
-            background: #667eea;
+            background: #005CB4;
             color: white;
-            border-color: #667eea;
+            border-color: #005CB4;
         }
 
         .submit-btn {
             width: 100%;
             padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #005CB4;
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s, background 0.3s;
             margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background: #004494;
         }
 
         .submit-btn:hover {
@@ -122,49 +248,20 @@
         }
 
         .result {
-            margin-top: 30px;
-            padding: 20px;
-            border-radius: 12px;
-            display: none;
-        }
-
-        .result.approved {
-            background: #d4edda;
-            border: 2px solid #28a745;
-        }
-
-        .result.denied {
-            background: #f8d7da;
-            border: 2px solid #dc3545;
-        }
-
-        .result-header {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 15px;
-        }
-
-        .result.approved .result-header {
-            color: #28a745;
-        }
-
-        .result.denied .result-header {
-            color: #dc3545;
-        }
-
-        .result-details {
-            font-size: 14px;
-            color: #333;
-            line-height: 1.8;
+            display: none; /* Hidden - using modal instead */
         }
 
         .result-detail-item {
-            margin: 8px 0;
+            margin: 12px 0;
+            font-size: 15px;
+            color: #333333;
         }
 
         .result-detail-label {
             font-weight: 600;
-            color: #555;
+            color: #005CB4;
+            display: inline-block;
+            min-width: 140px;
         }
 
         .loading {
@@ -174,8 +271,8 @@
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 4px solid #FAF3E0;
+            border-top: 4px solid #005CB4;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -194,14 +291,234 @@
             margin-top: 5px;
             display: none;
         }
+
+        /* 2FA Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 22px;
+            font-weight: 700;
+            color: #005CB4;
+            margin-bottom: 16px;
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-info {
+            background: #f5f5f5;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #005CB4;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal-btn.verify {
+            background: #005CB4;
+            color: white;
+        }
+
+        .modal-btn.verify:hover {
+            background: #004494;
+        }
+
+        .modal-btn.cancel {
+            background: #FAF3E0;
+            color: #333333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .modal-btn.cancel:hover {
+            background: #f0e8d0;
+        }
+
+        /* Result Modal Styles */
+        .result-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .result-modal-overlay.active {
+            display: flex;
+        }
+
+        .result-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .result-modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .result-modal-header.approved {
+            color: #4caf50;
+        }
+
+        .result-modal-header.denied {
+            color: #333333;
+        }
+
+        .result-modal-body {
+            margin-bottom: 24px;
+        }
+
+        .result-modal-info {
+            background: #FAF3E0;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .result-modal-info.approved {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+
+        .result-modal-info.denied {
+            background: #fff3e0;
+            border: 2px solid #EFC90A;
+        }
+
+        .close-result-btn {
+            width: 100%;
+            padding: 14px;
+            background: #005CB4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .close-result-btn:hover {
+            background: #004494;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ProxyPay Transaction Simulator</h1>
-        <p class="subtitle">Test location-based transaction validation</p>
+        <div class="logo">
+            <img src="../assets/proxypaylogo.png" alt="ProxyPay Logo">
+        </div>
 
-        <form id="transactionForm">
+        <!-- Landing Page -->
+        <div class="landing-page" id="landingPage">
+            <div class="landing-hero">
+                <h1 class="landing-title">ProxyPay Transaction Security</h1>
+                <p class="landing-subtitle">Location-based fraud prevention for your transactions</p>
+            </div>
+
+            <div class="landing-features">
+                <div class="feature-item">
+                    <span class="feature-icon">🔒</span>
+                    <span class="feature-text"><strong>Secure Validation:</strong> Verify transactions using real-time location matching</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📍</span>
+                    <span class="feature-text"><strong>Geospatial Protection:</strong> Automatically deny fraudulent transactions from different locations</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <span class="feature-text"><strong>2FA for High-Value:</strong> SMS verification for transactions over $100</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚡</span>
+                    <span class="feature-text"><strong>Instant Results:</strong> Real-time validation with minimal UX friction</span>
+                </div>
+            </div>
+
+            <button class="start-demo-btn" onclick="startDemo()">Start Demo</button>
+        </div>
+
+        <!-- Demo Form -->
+        <div class="demo-form" id="demoForm">
+            <h1>Transaction Simulator</h1>
+            <p class="subtitle">Test location-based transaction validation</p>
+
+            <form id="transactionForm">
             <div class="form-group">
                 <label for="cardNumber">Credit Card Number</label>
                 <select id="cardNumber">
@@ -227,7 +544,9 @@
                     <button type="button" class="preset-btn" onclick="setLocation(42.3736, -71.1097, 'MIT')">MIT Campus</button>
                     <button type="button" class="preset-btn" onclick="setLocation(40.7128, -74.0060, 'NYC')">New York City</button>
                     <button type="button" class="preset-btn" onclick="setLocation(37.7749, -122.4194, 'SF')">San Francisco</button>
-                    <button type="button" class="preset-btn" onclick="useMyLocation()" style="background: #4CAF50; color: white; border-color: #4CAF50;">📍 Use My Location</button>
+                </div>
+                <div class="location-button-container">
+                    <button type="button" class="use-location-btn" onclick="useMyLocation()">📍 Use My Location</button>
                 </div>
             </div>
 
@@ -257,14 +576,162 @@
             <div class="result-header" id="resultHeader"></div>
             <div class="result-details" id="resultDetails"></div>
         </div>
+        </div>
+    </div>
+
+    <!-- 2FA Verification Modal -->
+    <div class="modal-overlay" id="twoFAModal">
+        <div class="modal-content">
+            <div class="modal-header">📱 Two-Factor Authentication</div>
+            <div class="modal-body">
+                <div class="modal-info" id="modalInfo">
+                    A verification code has been sent to your phone.
+                </div>
+                <input
+                    type="text"
+                    class="code-input"
+                    id="verificationCode"
+                    placeholder="000000"
+                    maxlength="6"
+                    pattern="[0-9]*"
+                    inputmode="numeric"
+                >
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="cancel2FA()">Cancel</button>
+                <button class="modal-btn verify" onclick="verify2FA()">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="result-modal-overlay" id="resultModal">
+        <div class="result-modal-content">
+            <div class="result-modal-header" id="resultModalHeader"></div>
+            <div class="result-modal-body">
+                <div class="result-modal-info" id="resultModalInfo">
+                    <div id="resultModalDetails"></div>
+                </div>
+            </div>
+            <button class="close-result-btn" onclick="closeResultModal()">Close</button>
+        </div>
     </div>
 
     <script>
         const API_URL = 'http://localhost:5000/api/transaction/validate';
+        const VERIFY_URL = 'http://localhost:5000/api/transaction/verify-2fa';
+        let currentTransactionId = null;
+
+        function startDemo() {
+            document.getElementById('landingPage').classList.add('hidden');
+            document.getElementById('demoForm').classList.add('active');
+        }
 
         function setLocation(lat, lon, name) {
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lon;
+        }
+
+        function cancel2FA() {
+            document.getElementById('twoFAModal').classList.remove('active');
+            document.getElementById('verificationCode').value = '';
+            currentTransactionId = null;
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        async function verify2FA() {
+            const code = document.getElementById('verificationCode').value;
+
+            if (!code || code.length !== 6) {
+                alert('Please enter a 6-digit verification code');
+                return;
+            }
+
+            try {
+                const response = await fetch(VERIFY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        transaction_id: currentTransactionId,
+                        verification_code: code
+                    })
+                });
+
+                const data = await response.json();
+
+                // Hide modal
+                document.getElementById('twoFAModal').classList.remove('active');
+                document.getElementById('verificationCode').value = '';
+
+                // Show result
+                displayResult(data, response.ok);
+
+            } catch (error) {
+                alert('Verification failed: ' + error.message);
+            }
+        }
+
+        function closeResultModal() {
+            document.getElementById('resultModal').classList.remove('active');
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function displayResult(data, isSuccess) {
+            const modalHeader = document.getElementById('resultModalHeader');
+            const modalInfo = document.getElementById('resultModalInfo');
+            const modalDetails = document.getElementById('resultModalDetails');
+
+            if (isSuccess && data.transaction_approved) {
+                modalHeader.className = 'result-modal-header approved';
+                modalHeader.textContent = '✓ Transaction Approved';
+                modalInfo.className = 'result-modal-info approved';
+            } else {
+                modalHeader.className = 'result-modal-header denied';
+                modalHeader.textContent = data.error ? '✗ ' + data.error : '✗ Transaction Denied';
+                modalInfo.className = 'result-modal-info denied';
+            }
+
+            if (data.validation_details) {
+                // Log phone location to console (security - don't display on screen)
+                console.log('Phone Location (Hidden for Security):', {
+                    latitude: data.validation_details.phone_location.latitude,
+                    longitude: data.validation_details.phone_location.longitude
+                });
+
+                modalDetails.innerHTML = `
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Card:</span> ${data.card_number}
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Merchant:</span> ${data.merchant_name || 'N/A'}
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Amount:</span> $${data.amount.toFixed(2)}
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Distance:</span> ${data.validation_details.distance_miles.toFixed(2)} miles
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Reason:</span> ${data.validation_details.reason}
+                    </div>
+                    <div class="result-detail-item" style="margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(0,0,0,0.1);">
+                        <span class="result-detail-label">Transaction Location:</span>
+                        ${data.validation_details.transaction_location.latitude.toFixed(4)},
+                        ${data.validation_details.transaction_location.longitude.toFixed(4)}
+                    </div>
+                `;
+            } else {
+                modalDetails.innerHTML = `
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Message:</span> ${data.message || 'Transaction could not be processed'}
+                    </div>
+                `;
+            }
+
+            // Show the modal
+            document.getElementById('resultModal').classList.add('active');
         }
 
         function useMyLocation() {
@@ -364,50 +831,18 @@
 
                 // Hide loading
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('submitBtn').disabled = false;
 
-                // Show result
-                const resultDiv = document.getElementById('result');
-                const resultHeader = document.getElementById('resultHeader');
-                const resultDetails = document.getElementById('resultDetails');
-
-                if (data.transaction_approved) {
-                    resultDiv.className = 'result approved';
-                    resultHeader.textContent = '✓ Transaction Approved';
+                // Check if 2FA is required
+                if (data.requires_2fa) {
+                    // Store transaction ID and show 2FA modal
+                    currentTransactionId = data.transaction_id;
+                    document.getElementById('modalInfo').textContent = data.message || 'A verification code has been sent to your phone.';
+                    document.getElementById('twoFAModal').classList.add('active');
+                    document.getElementById('verificationCode').focus();
                 } else {
-                    resultDiv.className = 'result denied';
-                    resultHeader.textContent = '✗ Transaction Denied';
+                    // Show regular result
+                    displayResult(data, response.ok);
                 }
-
-                resultDetails.innerHTML = `
-                    <div class="result-detail-item">
-                        <span class="result-detail-label">Card:</span> ${data.card_number}
-                    </div>
-                    <div class="result-detail-item">
-                        <span class="result-detail-label">Merchant:</span> ${data.merchant_name || 'N/A'}
-                    </div>
-                    <div class="result-detail-item">
-                        <span class="result-detail-label">Amount:</span> $${data.amount.toFixed(2)}
-                    </div>
-                    <div class="result-detail-item">
-                        <span class="result-detail-label">Distance:</span> ${data.validation_details.distance_miles.toFixed(2)} miles
-                    </div>
-                    <div class="result-detail-item">
-                        <span class="result-detail-label">Reason:</span> ${data.validation_details.reason}
-                    </div>
-                    <div class="result-detail-item" style="margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(0,0,0,0.1);">
-                        <span class="result-detail-label">Phone Location:</span>
-                        ${data.validation_details.phone_location.latitude.toFixed(4)},
-                        ${data.validation_details.phone_location.longitude.toFixed(4)}
-                    </div>
-                    <div class="result-detail-item">
-                        <span class="result-detail-label">Transaction Location:</span>
-                        ${data.validation_details.transaction_location.latitude.toFixed(4)},
-                        ${data.validation_details.transaction_location.longitude.toFixed(4)}
-                    </div>
-                `;
-
-                resultDiv.style.display = 'block';
 
             } catch (error) {
                 // Hide loading

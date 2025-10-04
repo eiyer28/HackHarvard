@@ -9,7 +9,8 @@
       "Bash(py app.py)",
       "Bash(py test_api.py)",
       "WebSearch",
-      "WebFetch(domain:www.twilio.com)"
+      "WebFetch(domain:www.twilio.com)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
