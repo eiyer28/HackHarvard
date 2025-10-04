@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(mkdir:*)",
+      "Bash(python3:*)",
+      "Bash(py test_validator.py)",
+      "Bash(py -m pip install:*)",
+      "Bash(py app.py)",
+      "Bash(py test_api.py)"
     ],
     "deny": [],
     "ask": []
