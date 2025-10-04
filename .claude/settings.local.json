@@ -7,7 +7,9 @@
       "Bash(py test_validator.py)",
       "Bash(py -m pip install:*)",
       "Bash(py app.py)",
-      "Bash(py test_api.py)"
+      "Bash(py test_api.py)",
+      "WebSearch",
+      "WebFetch(domain:www.twilio.com)"
     ],
     "deny": [],
     "ask": []

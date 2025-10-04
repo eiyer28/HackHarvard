@@ -3,7 +3,7 @@ from validator import LocationValidator
 def test_validator():
     """Test the location validator with real-world scenarios."""
 
-    validator = LocationValidator(max_distance_miles=0.5)
+    validator = LocationValidator(max_distance_miles=0.25)
 
     # Test 1: Same location (Harvard campus)
     print("Test 1: Same location")

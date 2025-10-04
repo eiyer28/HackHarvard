@@ -38,7 +38,7 @@ swagger_template = {
 swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 # Initialize validator
-validator = LocationValidator(max_distance_miles=0.5)
+validator = LocationValidator(max_distance_miles=0.25)
 
 # Mock user location database (in production, this would be real-time from mobile app)
 mock_user_locations = {
