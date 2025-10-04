@@ -197,6 +197,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "transparent",
     marginVertical: 8,
+    alignSelf: "center", // centered horizontally
   },
   modalOverlay: {
     flex: 1,
