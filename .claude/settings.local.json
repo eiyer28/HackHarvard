@@ -10,7 +10,11 @@
       "Bash(py test_api.py)",
       "WebSearch",
       "WebFetch(domain:www.twilio.com)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(dir)",
+      "Bash(dir backend)",
+      "Bash(venv\\Scripts\\activate:*)",
+      "Bash(.venvScriptsactivate)"
     ],
     "deny": [],
     "ask": []
