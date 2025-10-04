@@ -3,6 +3,10 @@ from flask_cors import CORS
 from flasgger import Swagger
 import sys
 import os
+import hashlib
+import hmac
+import json
+from datetime import datetime, timedelta
 
 # Add parent directory to path to import geospatial module
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -45,6 +49,39 @@ mock_user_locations = {
     "4532-1234-5678-9012": (42.3770, -71.1167),  # Harvard campus
     "5412-9876-5432-1098": (37.7749, -122.4194),  # San Francisco
 }
+
+# Mock device registry (card_token -> public_key mapping)
+device_registry = {
+    "4532-1234-5678-9012": "mock_public_key_1",
+    "5412-9876-5432-1098": "mock_public_key_2",
+}
+
+# Mock attestation verification (for hackathon)
+def verify_attestation(attestation_token):
+    """Verify device attestation token (mock for hackathon)"""
+    return attestation_token and attestation_token.startswith('mock_attestation_')
+
+def verify_signature(data, signature, public_key):
+    """Verify digital signature (simplified for demo)"""
+    try:
+        # Create canonical JSON string
+        if isinstance(data, dict):
+            canonical_data = json.dumps(data, sort_keys=True)
+        else:
+            canonical_data = data
+        
+        # Create hash
+        data_hash = hashlib.sha256(canonical_data.encode()).digest()
+        
+        # Create expected signature (simplified)
+        expected_signature = hashlib.sha256(
+            data_hash + public_key.encode()
+        ).hexdigest()
+        
+        return signature == expected_signature
+    except Exception as e:
+        print(f"Signature verification error: {e}")
+        return False
 
 @app.route('/api/transaction/validate', methods=['POST'])
 def validate_transaction():
@@ -238,6 +275,240 @@ def register_card():
         return jsonify({
             'error': 'Internal server error',
             'message': str(e)
+        }), 500
+
+@app.route('/api/register-device', methods=['POST'])
+def register_device():
+    """
+    Register a mobile device with its public key
+    ---
+    tags:
+      - Devices
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - card_token
+            - public_key
+            - attestation
+          properties:
+            card_token:
+              type: string
+              example: "4532-1234-5678-9012"
+            public_key:
+              type: string
+              example: "mock_public_key_1"
+            attestation:
+              type: string
+              example: "mock_attestation_123"
+    responses:
+      201:
+        description: Device registered successfully
+      400:
+        description: Invalid request
+    """
+    try:
+        data = request.get_json()
+        card_token = data.get('card_token')
+        public_key = data.get('public_key')
+        attestation = data.get('attestation')
+
+        if not all([card_token, public_key, attestation]):
+            return jsonify({
+                'error': 'Missing required fields',
+                'required': ['card_token', 'public_key', 'attestation']
+            }), 400
+
+        # Verify attestation
+        if not verify_attestation(attestation):
+            return jsonify({
+                'error': 'Invalid attestation',
+                'message': 'Device attestation verification failed'
+            }), 400
+
+        # Register device
+        device_registry[card_token] = public_key
+
+        return jsonify({
+            'message': 'Device registered successfully',
+            'card_token': card_token,
+            'public_key': public_key
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/prove-location', methods=['POST'])
+def prove_location():
+    """
+    Verify a signed location proof from mobile device
+    ---
+    tags:
+      - Location Proofs
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - card_token
+            - transaction_nonce
+            - transaction_id
+            - location
+            - timestamp
+            - attestation
+            - signature
+          properties:
+            card_token:
+              type: string
+              example: "4532-1234-5678-9012"
+            transaction_nonce:
+              type: string
+              example: "nonce123"
+            transaction_id:
+              type: string
+              example: "tx_001"
+            location:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  example: 42.3770
+                lon:
+                  type: number
+                  example: -71.1167
+            timestamp:
+              type: string
+              example: "2025-10-04T14:12:00Z"
+            attestation:
+              type: string
+              example: "mock_attestation_123"
+            signature:
+              type: string
+              example: "signature_hash"
+    responses:
+      200:
+        description: Location proof verification result
+      400:
+        description: Invalid proof
+    """
+    try:
+        data = request.get_json()
+        
+        # Extract proof data
+        card_token = data.get('card_token')
+        transaction_nonce = data.get('transaction_nonce')
+        transaction_id = data.get('transaction_id')
+        location = data.get('location')
+        timestamp = data.get('timestamp')
+        attestation = data.get('attestation')
+        signature = data.get('signature')
+
+        # Validate required fields
+        if not all([card_token, transaction_nonce, transaction_id, location, timestamp, attestation, signature]):
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Missing required fields'
+            }), 400
+
+        # Get device public key
+        public_key = device_registry.get(card_token)
+        if not public_key:
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Device not registered'
+            }), 400
+
+        # Verify attestation
+        if not verify_attestation(attestation):
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Invalid device attestation'
+            }), 400
+
+        # Create proof data for signature verification
+        proof_data = {
+            'card_token': card_token,
+            'transaction_nonce': transaction_nonce,
+            'transaction_id': transaction_id,
+            'location': location,
+            'timestamp': timestamp,
+            'attestation': attestation
+        }
+
+        # Verify signature
+        if not verify_signature(proof_data, signature, public_key):
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Invalid digital signature'
+            }), 400
+
+        # Check timestamp freshness (within 5 minutes)
+        try:
+            proof_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            now = datetime.utcnow().replace(tzinfo=proof_time.tzinfo)
+            if (now - proof_time).total_seconds() > 300:  # 5 minutes
+                return jsonify({
+                    'success': False,
+                    'result': 'DENY',
+                    'reason': 'Proof timestamp too old'
+                }), 400
+        except:
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Invalid timestamp format'
+            }), 400
+
+        # Get stored phone location
+        phone_location = mock_user_locations.get(card_token)
+        if not phone_location:
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Phone location not available'
+            }), 400
+
+        # Validate location proximity
+        trans_coords = (location['lat'], location['lon'])
+        validation_result = validator.validate_transaction(phone_location, trans_coords)
+        
+        distance_meters = validation_result['distance_miles'] * 1609.34  # Convert to meters
+
+        # Decision logic based on distance
+        if distance_meters <= 15:  # Within 15 meters
+            result = 'ACCEPT'
+            reason = 'Co-located transaction'
+        elif distance_meters <= 500:  # Within 500 meters
+            result = 'CONFIRM_REQUIRED'
+            reason = 'Location mismatch - confirmation required'
+        else:  # Too far
+            result = 'DENY'
+            reason = 'Location too far from phone'
+
+        return jsonify({
+            'success': True,
+            'result': result,
+            'reason': reason,
+            'distance_meters': round(distance_meters, 2)
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'result': 'DENY',
+            'reason': f'Server error: {str(e)}'
         }), 500
 
 @app.route('/api/health', methods=['GET'])
