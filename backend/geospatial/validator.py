@@ -4,7 +4,7 @@ from typing import Tuple, Dict
 class LocationValidator:
     """Validates if a transaction location matches the user's phone location."""
 
-    def __init__(self, max_distance_miles: float = 0.5):
+    def __init__(self, max_distance_miles: float = 0.25):
         """
         Initialize validator with maximum allowed distance.
 
