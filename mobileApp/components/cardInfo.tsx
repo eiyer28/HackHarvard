@@ -18,7 +18,7 @@ export function CardInfo({
   cardNumber,
   cardHolder,
   expiry,
-  brandColor
+  brandColor,
 }: Props) {
   const [visible, setVisible] = useState(false);
   const background = useThemeColor({}, "background") ?? "#fff";
@@ -32,7 +32,13 @@ export function CardInfo({
         <ThemedText type="subtitle" style={[styles.type, { color: accent }]}>
           {cardType}
         </ThemedText>
-        <ThemedText type="defaultSemiBold">{maskedNumber}</ThemedText>
+        <ThemedText
+          type="defaultSemiBold"
+          numberOfLines={1}
+          style={styles.noWrap}
+        >
+          {maskedNumber}
+        </ThemedText>
       </View>
 
       <View style={styles.row}>
@@ -54,7 +60,11 @@ export function CardInfo({
             style={[styles.modalContent, { backgroundColor: background }]}
           >
             <ThemedText type="title">{cardType} Card</ThemedText>
-            <ThemedText style={styles.fullNumber} type="defaultSemiBold">
+            <ThemedText
+              style={styles.fullNumber}
+              type="defaultSemiBold"
+              numberOfLines={1}
+            >
               {formatCardNumber(cardNumber)}
             </ThemedText>
             <View style={styles.row}>
@@ -83,22 +93,24 @@ export function CardInfo({
 }
 
 function maskCardNumber(num: string) {
-  // keep last 4 digits visible
-  const digits = num.replace(/\s+/g, "");
+  // keep last 4 digits visible and use non-breaking spaces between groups
+  const digits = (num || "").replace(/\s+/g, "");
   if (digits.length <= 4) return digits;
   const last4 = digits.slice(-4);
-  return "•••• •••• •••• " + last4;
+  const nbsp = "\u00A0";
+  return `••••${nbsp}••••${nbsp}••••${nbsp}${last4}`;
 }
 
 function formatCardNumber(num: string) {
-  const digits = num.replace(/\s+/g, "");
-  // group into 4s for display
-  return digits.replace(/(.{4})/g, "$1 ").trim();
+  const digits = (num || "").replace(/\s+/g, "");
+  if (!digits) return num;
+  const groups = digits.match(/.{1,4}/g) || [];
+  return groups.join("\u00A0");
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: "90%",
+    width: "100%",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
@@ -113,6 +125,10 @@ const styles = StyleSheet.create({
   },
   type: {
     fontSize: 16,
+  },
+  noWrap: {
+    flexShrink: 0, // ensure it doesn't break to new line
+    // keep same font wrapping prevention; numberOfLines={1} is set where used
   },
   modalOverlay: {
     flex: 1,
