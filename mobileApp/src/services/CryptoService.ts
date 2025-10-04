@@ -9,6 +9,7 @@
 
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 export interface KeyPair {
   publicKey: string;
@@ -30,6 +31,30 @@ export interface LocationProof {
 export class CryptoService {
   private static readonly PRIVATE_KEY_STORAGE_KEY = "proxy_pay_private_key";
   private static readonly PUBLIC_KEY_STORAGE_KEY = "proxy_pay_public_key";
+
+  /**
+   * Test if SecureStore is available and working
+   */
+  static async testSecureStore(): Promise<boolean> {
+    try {
+      if (Platform.OS === "web") {
+        return typeof window !== "undefined" && window.localStorage !== null;
+      } else {
+        // Test SecureStore on iOS/Android
+        const testKey = "test_secure_store_key";
+        const testValue = "test_value_" + Date.now();
+
+        await SecureStore.setItemAsync(testKey, testValue);
+        const retrievedValue = await SecureStore.getItemAsync(testKey);
+        await SecureStore.deleteItemAsync(testKey);
+
+        return retrievedValue === testValue;
+      }
+    } catch (error) {
+      console.error("SecureStore test failed:", error);
+      return false;
+    }
+  }
 
   /**
    * Generate a new ECDSA P-256 keypair for the device
@@ -96,15 +121,21 @@ export class CryptoService {
    */
   static async getOrCreateKeyPair(): Promise<KeyPair> {
     try {
+      console.log("🔍 Checking for existing keypair on", Platform.OS);
       const existingKeyPair = await this.getStoredKeyPair();
       if (existingKeyPair) {
+        console.log("✅ Found existing keypair");
         return existingKeyPair;
       }
 
+      console.log("🔄 No existing keypair found, generating new one");
       return await this.generateKeyPair();
     } catch (error) {
-      console.error("Error getting keypair:", error);
-      throw new Error("Failed to get device keypair");
+      console.error("❌ Error getting keypair:", error);
+      throw new Error(
+        "Failed to get device keypair: " +
+          (error instanceof Error ? error.message : String(error))
+      );
     }
   }
 
@@ -220,23 +251,59 @@ export class CryptoService {
    */
   private static async storeKeyPair(keyPair: KeyPair): Promise<void> {
     try {
-      // Use localStorage for web, SecureStore for native
-      if (typeof window !== "undefined") {
-        localStorage.setItem(this.PRIVATE_KEY_STORAGE_KEY, keyPair.privateKey);
-        localStorage.setItem(this.PUBLIC_KEY_STORAGE_KEY, keyPair.publicKey);
+      // Use localStorage for web, SecureStore for native (iOS/Android)
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined" && window.localStorage) {
+          localStorage.setItem(
+            this.PRIVATE_KEY_STORAGE_KEY,
+            keyPair.privateKey
+          );
+          localStorage.setItem(this.PUBLIC_KEY_STORAGE_KEY, keyPair.publicKey);
+        } else {
+          throw new Error("localStorage not available on web platform");
+        }
       } else {
-        await SecureStore.setItemAsync(
-          this.PRIVATE_KEY_STORAGE_KEY,
-          keyPair.privateKey
-        );
-        await SecureStore.setItemAsync(
-          this.PUBLIC_KEY_STORAGE_KEY,
-          keyPair.publicKey
-        );
+        // Use SecureStore for iOS and Android
+        try {
+          await SecureStore.setItemAsync(
+            this.PRIVATE_KEY_STORAGE_KEY,
+            keyPair.privateKey,
+            {
+              requireAuthentication: false, // Don't require biometric authentication for demo
+              authenticationPrompt: "Access your device keys",
+            }
+          );
+          await SecureStore.setItemAsync(
+            this.PUBLIC_KEY_STORAGE_KEY,
+            keyPair.publicKey,
+            {
+              requireAuthentication: false,
+              authenticationPrompt: "Access your device keys",
+            }
+          );
+        } catch (secureStoreError) {
+          console.error("SecureStore error:", secureStoreError);
+          // Fallback: try without options for iOS compatibility
+          await SecureStore.setItemAsync(
+            this.PRIVATE_KEY_STORAGE_KEY,
+            keyPair.privateKey
+          );
+          await SecureStore.setItemAsync(
+            this.PUBLIC_KEY_STORAGE_KEY,
+            keyPair.publicKey
+          );
+        }
       }
+      console.log(
+        "✅ Keys stored successfully using",
+        Platform.OS === "web" ? "localStorage" : "SecureStore"
+      );
     } catch (error) {
       console.error("Error storing keypair:", error);
-      throw new Error("Failed to store device keys");
+      throw new Error(
+        "Failed to store device keys: " +
+          (error instanceof Error ? error.message : String(error))
+      );
     }
   }
 
@@ -248,21 +315,53 @@ export class CryptoService {
       let privateKey: string | null;
       let publicKey: string | null;
 
-      // Use localStorage for web, SecureStore for native
-      if (typeof window !== "undefined") {
-        privateKey = localStorage.getItem(this.PRIVATE_KEY_STORAGE_KEY);
-        publicKey = localStorage.getItem(this.PUBLIC_KEY_STORAGE_KEY);
+      // Use localStorage for web, SecureStore for native (iOS/Android)
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined" && window.localStorage) {
+          privateKey = localStorage.getItem(this.PRIVATE_KEY_STORAGE_KEY);
+          publicKey = localStorage.getItem(this.PUBLIC_KEY_STORAGE_KEY);
+        } else {
+          console.warn("localStorage not available on web platform");
+          return null;
+        }
       } else {
-        privateKey = await SecureStore.getItemAsync(
-          this.PRIVATE_KEY_STORAGE_KEY
-        );
-        publicKey = await SecureStore.getItemAsync(this.PUBLIC_KEY_STORAGE_KEY);
+        // Use SecureStore for iOS and Android
+        try {
+          privateKey = await SecureStore.getItemAsync(
+            this.PRIVATE_KEY_STORAGE_KEY,
+            {
+              requireAuthentication: false,
+              authenticationPrompt: "Access your device keys",
+            }
+          );
+          publicKey = await SecureStore.getItemAsync(
+            this.PUBLIC_KEY_STORAGE_KEY,
+            {
+              requireAuthentication: false,
+              authenticationPrompt: "Access your device keys",
+            }
+          );
+        } catch (secureStoreError) {
+          console.error("SecureStore retrieval error:", secureStoreError);
+          // Fallback: try without options for iOS compatibility
+          privateKey = await SecureStore.getItemAsync(
+            this.PRIVATE_KEY_STORAGE_KEY
+          );
+          publicKey = await SecureStore.getItemAsync(
+            this.PUBLIC_KEY_STORAGE_KEY
+          );
+        }
       }
 
       if (privateKey && publicKey) {
+        console.log(
+          "✅ Keys retrieved successfully using",
+          Platform.OS === "web" ? "localStorage" : "SecureStore"
+        );
         return { privateKey, publicKey };
       }
 
+      console.log("ℹ️ No stored keys found");
       return null;
     } catch (error) {
       console.error("Error retrieving keypair:", error);
@@ -284,15 +383,23 @@ export class CryptoService {
   static async clearKeys(): Promise<void> {
     try {
       console.log("Clearing stored keys...");
-      // Use localStorage for web, SecureStore for native
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(this.PRIVATE_KEY_STORAGE_KEY);
-        localStorage.removeItem(this.PUBLIC_KEY_STORAGE_KEY);
+      // Use localStorage for web, SecureStore for native (iOS/Android)
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined" && window.localStorage) {
+          localStorage.removeItem(this.PRIVATE_KEY_STORAGE_KEY);
+          localStorage.removeItem(this.PUBLIC_KEY_STORAGE_KEY);
+        } else {
+          console.warn("localStorage not available on web platform");
+        }
       } else {
+        // Use SecureStore for iOS and Android
         await SecureStore.deleteItemAsync(this.PRIVATE_KEY_STORAGE_KEY);
         await SecureStore.deleteItemAsync(this.PUBLIC_KEY_STORAGE_KEY);
       }
-      console.log("Keys cleared successfully");
+      console.log(
+        "✅ Keys cleared successfully using",
+        Platform.OS === "web" ? "localStorage" : "SecureStore"
+      );
     } catch (error) {
       console.error("Error clearing keys:", error);
     }

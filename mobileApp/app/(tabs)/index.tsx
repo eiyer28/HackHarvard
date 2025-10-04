@@ -7,6 +7,7 @@ import {
   Alert,
   ScrollView,
   TextInput,
+  Platform,
 } from "react-native";
 import { CryptoService } from "../../src/services/CryptoService";
 import { AttestationService } from "../../src/services/AttestationService";
@@ -52,11 +53,23 @@ export default function HomeScreen() {
 
   const checkRegistration = async () => {
     try {
+      // Test SecureStore availability first
+      const isSecureStoreWorking = await CryptoService.testSecureStore();
+      console.log("🔐 SecureStore test result:", isSecureStoreWorking);
+
+      if (!isSecureStoreWorking) {
+        console.warn("⚠️ SecureStore not working properly on this platform");
+        Alert.alert(
+          "Storage Issue",
+          "Secure storage is not available. This may affect key persistence on iOS."
+        );
+      }
+
       const key = await CryptoService.getPublicKey();
       setPublicKey(key);
       setIsRegistered(true);
     } catch (error) {
-      console.log("Device not registered yet");
+      console.log("Device not registered yet:", error);
     }
   };
 
@@ -240,6 +253,25 @@ export default function HomeScreen() {
           <Text style={styles.buttonText}>Reconnect WebSocket</Text>
         </TouchableOpacity>
       )}
+
+      <TouchableOpacity
+        style={[styles.button, styles.buttonSecondary]}
+        onPress={async () => {
+          try {
+            const isWorking = await CryptoService.testSecureStore();
+            Alert.alert(
+              "Storage Test",
+              `SecureStore is ${isWorking ? "working" : "not working"} on ${
+                Platform.OS
+              }`
+            );
+          } catch (error) {
+            Alert.alert("Storage Test Failed", String(error));
+          }
+        }}
+      >
+        <Text style={styles.buttonText}>Test Storage</Text>
+      </TouchableOpacity>
 
       {isRegistered && (
         <TouchableOpacity
