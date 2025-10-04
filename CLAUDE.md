@@ -10,6 +10,9 @@ Transaction mockup where people are able to simulate a transaction from a given 
 Location tracking on user's phone to get the user information. 
 System to validate that phone and transaction location are sufficiently close
 
+Things that should be shown in the demo:
+false accepts avoided, time to confirm, ux clicks, and data minimization
+
 Stack:
 React native for a mobile app
 Website frontend for transaction simulation
