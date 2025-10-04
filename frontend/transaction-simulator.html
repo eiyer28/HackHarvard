@@ -227,6 +227,7 @@
                     <button type="button" class="preset-btn" onclick="setLocation(42.3736, -71.1097, 'MIT')">MIT Campus</button>
                     <button type="button" class="preset-btn" onclick="setLocation(40.7128, -74.0060, 'NYC')">New York City</button>
                     <button type="button" class="preset-btn" onclick="setLocation(37.7749, -122.4194, 'SF')">San Francisco</button>
+                    <button type="button" class="preset-btn" onclick="useMyLocation()" style="background: #4CAF50; color: white; border-color: #4CAF50;">📍 Use My Location</button>
                 </div>
             </div>
 
@@ -264,6 +265,61 @@
         function setLocation(lat, lon, name) {
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lon;
+        }
+
+        function useMyLocation() {
+            const btn = event.target;
+            const originalText = btn.textContent;
+
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+
+            // Show loading state
+            btn.textContent = '📍 Getting location...';
+            btn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    document.getElementById('latitude').value = lat.toFixed(6);
+                    document.getElementById('longitude').value = lon.toFixed(6);
+
+                    // Reset button
+                    btn.textContent = '✓ Location Set';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                },
+                (error) => {
+                    let errorMsg = 'Unable to get your location';
+
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = 'Location permission denied. Please enable location access in your browser.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = 'Location information unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg = 'Location request timed out.';
+                            break;
+                    }
+
+                    alert(errorMsg);
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
         }
 
         document.getElementById('transactionForm').addEventListener('submit', async (e) => {
