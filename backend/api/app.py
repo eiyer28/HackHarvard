@@ -1,12 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flasgger import Swagger
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import sys
 import os
 import hashlib
 import hmac
 import json
 from datetime import datetime, timedelta
+import uuid
 from dotenv import load_dotenv
 from twilio.rest import Client
 import secrets
@@ -20,6 +22,7 @@ from geospatial.validator import LocationValidator
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
+socketio = SocketIO(app, cors_allowed_origins="*")  # Enable WebSocket with CORS
 
 # Configure Swagger UI
 swagger_config = {
@@ -63,52 +66,374 @@ except Exception as e:
     twilio_verify_service = None
 
 # Mock user location database (in production, this would be real-time from mobile app)
+# Updated to use actual phone location from debug output
 mock_user_locations = {
     "4532-1234-5678-9012": {
-        "location": (42.3770, -71.1167),  # Harvard campus
-        "phone": "+19738678884"
+        'location': (42.380992732253446, -71.1251378073866),  # Actual phone location (near Harvard)
+        'phone': '+1234567890'
     },
     "5412-9876-5432-1098": {
-        "location": (37.7749, -122.4194),  # San Francisco
-        "phone": "+19738678884"
+        'location': (37.7749, -122.4194),  # San Francisco
+        'phone': '+1234567891'
     }
 }
 
-# In-memory storage for pending 2FA transactions
-pending_2fa_transactions = {}
+# Mock device registry (card_token -> key_info mapping)
+# For demo purposes, we'll use deterministic keys that match the mobile app
+import hashlib
 
-# Mock device registry (card_token -> public_key mapping)
+def generate_demo_keys():
+    """Generate deterministic demo keys that match mobile app"""
+    import base64
+    seed = "demo_seed_for_consistent_keys"
+    
+    # Generate private key: SHA256(seed) -> base64 encode (matching mobile app)
+    private_key_raw = hashlib.sha256(seed.encode()).digest()
+    private_key_b64_str = base64.b64encode(private_key_raw).decode('utf-8')
+    
+    # Generate public key: SHA256(private_key + "_public") -> base64 encode
+    public_key_raw = hashlib.sha256((private_key_b64_str + "_public").encode()).digest()
+    public_key_b64_str = base64.b64encode(public_key_raw).decode('utf-8')
+    
+    print(f"Generated demo keys:")
+    print(f"  Private key: {private_key_b64_str}")
+    print(f"  Public key: {public_key_b64_str}")
+    
+    return private_key_b64_str, public_key_b64_str
+
+demo_private_key, demo_public_key = generate_demo_keys()
+
 device_registry = {
-    "4532-1234-5678-9012": "mock_public_key_1",
-    "5412-9876-5432-1098": "mock_public_key_2",
+    "4532-1234-5678-9012": {
+        "public_key": demo_public_key,
+        "private_key": demo_private_key
+    },
+    "5412-9876-5432-1098": {
+        "public_key": demo_public_key, 
+        "private_key": demo_private_key
+    },
 }
+
+# Active WebSocket connections by card token
+active_connections = {}
+
+# Pending transactions waiting for location proofs
+pending_transactions = {}
 
 # Mock attestation verification (for hackathon)
 def verify_attestation(attestation_token):
     """Verify device attestation token (mock for hackathon)"""
     return attestation_token and attestation_token.startswith('mock_attestation_')
 
-def verify_signature(data, signature, public_key):
+def verify_signature(data, signature, private_key):
     """Verify digital signature (simplified for demo)"""
     try:
-        # Create canonical JSON string
+        import base64
+        
+        # Create canonical JSON string (sorted keys to match mobile app)
         if isinstance(data, dict):
             canonical_data = json.dumps(data, sort_keys=True)
         else:
             canonical_data = data
         
-        # Create hash
-        data_hash = hashlib.sha256(canonical_data.encode()).digest()
+        # Create hash and encode as base64 (matching mobile app exactly)
+        data_hash_raw = hashlib.sha256(canonical_data.encode()).digest()
+        data_hash_b64 = base64.b64encode(data_hash_raw).decode('utf-8')
         
-        # Create expected signature (simplified)
+        # Mobile app algorithm: SHA256(base64HashString + privateKey) -> hex
         expected_signature = hashlib.sha256(
-            data_hash + public_key.encode()
+            (data_hash_b64 + private_key).encode()
         ).hexdigest()
+        
+        print(f"Backend verification:")
+        print(f"  Canonical data: {canonical_data}")
+        print(f"  Data hash (raw bytes): {data_hash_raw.hex()}")
+        print(f"  Data hash (base64): {data_hash_b64}")
+        print(f"  Private key: {private_key}")
+        print(f"  Concatenated string: '{data_hash_b64 + private_key}'")
+        print(f"  Expected signature: {expected_signature}")
+        print(f"  Received signature: {signature}")
+        print(f"  Signatures match: {signature == expected_signature}")
         
         return signature == expected_signature
     except Exception as e:
         print(f"Signature verification error: {e}")
         return False
+
+# WebSocket event handlers
+@socketio.on('connect')
+def handle_connect():
+    """Handle WebSocket connection"""
+    print(f"Client connected: {request.sid}")
+    emit('connected', {'message': 'Connected to ProxyPay server'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle WebSocket disconnection"""
+    print(f"Client disconnected: {request.sid}")
+    # Remove from active connections
+    for card_token, sid in list(active_connections.items()):
+        if sid == request.sid:
+            del active_connections[card_token]
+            break
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    """Join a room for transaction communication"""
+    try:
+        room = data.get('room')
+        if room:
+            join_room(room)
+            print(f"Client {request.sid} joined room: {room}")
+    except Exception as e:
+        emit('error', {'message': f'Join room error: {str(e)}'})
+
+@socketio.on('register_phone')
+def handle_register_phone(data):
+    """Register a phone with its card token"""
+    try:
+        card_token = data.get('card_token')
+        if not card_token:
+            emit('error', {'message': 'Card token required'})
+            return
+        
+        # Check if device is registered
+        if card_token not in device_registry:
+            emit('error', {'message': 'Device not registered. Please register device first.'})
+            return
+        
+        # Store connection
+        active_connections[card_token] = request.sid
+        join_room(f"card_{card_token}")
+        
+        print(f"Phone registered for card: {card_token}")
+        emit('registered', {'message': f'Phone registered for card {card_token}'})
+        
+    except Exception as e:
+        emit('error', {'message': f'Registration error: {str(e)}'})
+
+@socketio.on('request_location_proof')
+def handle_request_location_proof(data):
+    """Request location proof from phone"""
+    try:
+        card_token = data.get('card_token')
+        transaction_id = data.get('transaction_id')
+        transaction_nonce = data.get('transaction_nonce')
+        pos_location = data.get('pos_location')
+        amount = data.get('amount')
+        merchant_name = data.get('merchant_name')
+        
+        if not all([card_token, transaction_id, transaction_nonce, pos_location]):
+            emit('error', {'message': 'Missing required fields'})
+            return
+        
+        # Check if phone is connected
+        if card_token not in active_connections:
+            emit('error', {'message': 'Phone not connected for this card'})
+            return
+        
+        # Store pending transaction
+        pending_transactions[transaction_id] = {
+            'card_token': card_token,
+            'transaction_nonce': transaction_nonce,
+            'pos_location': pos_location,
+            'amount': amount,
+            'merchant_name': merchant_name,
+            'timestamp': datetime.utcnow().isoformat(),
+            'status': 'pending'
+        }
+        
+        # Send request to phone
+        socketio.emit('location_proof_request', {
+            'transaction_id': transaction_id,
+            'transaction_nonce': transaction_nonce,
+            'pos_location': pos_location,
+            'amount': amount,
+            'merchant_name': merchant_name
+        }, room=f"card_{card_token}")
+        
+        print(f"Location proof requested for transaction: {transaction_id}")
+        
+    except Exception as e:
+        emit('error', {'message': f'Request error: {str(e)}'})
+
+@socketio.on('location_proof_response')
+def handle_location_proof_response(data):
+    """Handle location proof response from phone"""
+    try:
+        transaction_id = data.get('transaction_id')
+        location_proof = data.get('location_proof')
+        
+        if not transaction_id or not location_proof:
+            emit('error', {'message': 'Missing transaction ID or location proof'})
+            return
+        
+        # Get pending transaction
+        if transaction_id not in pending_transactions:
+            emit('error', {'message': 'Transaction not found'})
+            return
+        
+        pending_tx = pending_transactions[transaction_id]
+        card_token = pending_tx['card_token']
+        
+        # Verify the location proof
+        verification_result = verify_location_proof(location_proof, pending_tx)
+        
+        # Update transaction status
+        pending_transactions[transaction_id]['status'] = 'completed'
+        pending_transactions[transaction_id]['result'] = verification_result
+        
+        # Send result to POS
+        socketio.emit('transaction_result', {
+            'transaction_id': transaction_id,
+            'result': verification_result
+        }, room=f"pos_{transaction_id}")
+        
+        print(f"Location proof processed for transaction: {transaction_id}")
+        
+    except Exception as e:
+        emit('error', {'message': f'Processing error: {str(e)}'})
+
+def verify_location_proof(location_proof, pending_transaction):
+    """Verify a location proof from mobile device"""
+    try:
+        # Extract proof data
+        card_token = location_proof.get('card_token')
+        transaction_nonce = location_proof.get('transaction_nonce')
+        transaction_id = location_proof.get('transaction_id')
+        location = location_proof.get('location')
+        timestamp = location_proof.get('timestamp')
+        attestation = location_proof.get('attestation')
+        signature = location_proof.get('signature')
+
+        # Validate required fields
+        if not all([card_token, transaction_nonce, transaction_id, location, timestamp, attestation, signature]):
+            return {
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Missing required fields'
+            }
+
+        # Get device key info
+        device_info = device_registry.get(card_token)
+        if not device_info:
+            return {
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Device not registered'
+            }
+        
+        private_key = device_info.get('private_key')
+        public_key = device_info.get('public_key')
+        if not private_key or not public_key:
+            return {
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Device keys not available'
+            }
+
+        # Verify attestation
+        if not verify_attestation(attestation):
+            return {
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Invalid device attestation'
+            }
+
+        # Create proof data for signature verification
+        proof_data = {
+            'card_token': card_token,
+            'transaction_nonce': transaction_nonce,
+            'transaction_id': transaction_id,
+            'location': location,
+            'timestamp': timestamp,
+            'attestation': attestation
+        }
+
+        # Verify signature
+        print(f"\n=== SIGNATURE VERIFICATION DEBUG ===")
+        print(f"Card token: {card_token}")
+        print(f"Public key: {public_key}")
+        print(f"Private key: {private_key}")
+        print(f"Received signature: {signature}")
+        print(f"Proof data: {json.dumps(proof_data, indent=2)}")
+        
+        signature_valid = verify_signature(proof_data, signature, private_key)
+        print(f"Signature valid: {signature_valid}")
+        print(f"=== END SIGNATURE VERIFICATION DEBUG ===\n")
+        
+        if not signature_valid:
+            return {
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Invalid digital signature'
+            }
+
+        # Check timestamp freshness (within 5 minutes)
+        try:
+            proof_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            now = datetime.utcnow().replace(tzinfo=proof_time.tzinfo)
+            if (now - proof_time).total_seconds() > 300:  # 5 minutes
+                return {
+                    'success': False,
+                    'result': 'DENY',
+                    'reason': 'Proof timestamp too old'
+                }
+        except:
+            return {
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Invalid timestamp format'
+            }
+
+        # Get POS location from pending transaction
+        pos_location = pending_transaction.get('pos_location')
+        if not pos_location:
+            return {
+                'success': False,
+                'result': 'DENY',
+                'reason': 'POS location not available'
+            }
+
+        # Validate location proximity - compare mobile app location vs POS location
+        mobile_app_coords = (round(float(location['lat']), 8), round(float(location['lon']), 8))
+        pos_coords = (round(float(pos_location['lat']), 8), round(float(pos_location['lon']), 8))
+        
+        # DEBUG: Log the coordinates being used
+        print(f"\n=== LOCATION VALIDATION DEBUG (verify_location_proof) ===")
+        print(f"Mobile app location (from location proof): {mobile_app_coords}")
+        print(f"POS location (from pending transaction): {pos_coords}")
+        print(f"Card token: {card_token}")
+        print(f"=== END LOCATION VALIDATION DEBUG ===\n")
+        
+        validation_result = validator.validate_transaction(mobile_app_coords, pos_coords)
+        
+        distance_meters = validation_result['distance_miles'] * 1609.34  # Convert to meters
+
+        # Decision logic based on distance
+        if distance_meters <= 15:  # Within 15 meters
+            result = 'ACCEPT'
+            reason = 'Co-located transaction'
+        elif distance_meters <= 500:  # Within 500 meters
+            result = 'CONFIRM_REQUIRED'
+            reason = 'Location mismatch - confirmation required'
+        else:  # Too far
+            result = 'DENY'
+            reason = 'Location too far from phone'
+
+        return {
+            'success': True,
+            'result': result,
+            'reason': reason,
+            'distance_meters': round(distance_meters, 2)
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'result': 'DENY',
+            'reason': f'Verification error: {str(e)}'
+        }
 
 @app.route('/api/transaction/validate', methods=['POST'])
 def validate_transaction():
@@ -187,17 +512,21 @@ def validate_transaction():
         user_data = mock_user_locations.get(card_number)
 
         if not user_data:
-            return jsonify({
-                'error': 'Card not registered',
-                'message': 'This card is not linked to a phone location'
-            }), 404
+            # For demo purposes, create a default location for any new card
+            # In production, this would require proper registration
+            default_location = (42.3770, -71.1167)  # Harvard Square default
+            mock_user_locations[card_number] = {
+                'location': default_location,
+                'phone': '+1234567890'
+            }
+            user_data = mock_user_locations[card_number]
 
         phone_location = user_data['location']
         phone_number = user_data['phone']
 
-        # Extract transaction coordinates
-        trans_lat = transaction_location.get('latitude')
-        trans_lon = transaction_location.get('longitude')
+        # Extract transaction coordinates with 8 decimal precision
+        trans_lat = round(float(transaction_location.get('latitude')), 8)
+        trans_lon = round(float(transaction_location.get('longitude')), 8)
 
         if trans_lat is None or trans_lon is None:
             return jsonify({
@@ -540,8 +869,12 @@ def register_device():
                 'message': 'Device attestation verification failed'
             }), 400
 
-        # Register device
-        device_registry[card_token] = public_key
+        # Register device (for demo, use the same key generation as mobile app)
+        # The mobile app sends its public key, we need to use the matching private key
+        device_registry[card_token] = {
+            'public_key': public_key,
+            'private_key': demo_private_key  # Use the same demo private key
+        }
 
         return jsonify({
             'message': 'Device registered successfully',
@@ -630,13 +963,22 @@ def prove_location():
                 'reason': 'Missing required fields'
             }), 400
 
-        # Get device public key
-        public_key = device_registry.get(card_token)
-        if not public_key:
+        # Get device key info
+        device_info = device_registry.get(card_token)
+        if not device_info:
             return jsonify({
                 'success': False,
                 'result': 'DENY',
                 'reason': 'Device not registered'
+            }), 400
+        
+        public_key = device_info.get('public_key')
+        private_key = device_info.get('private_key')
+        if not public_key or not private_key:
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Device keys not available'
             }), 400
 
         # Verify attestation
@@ -658,7 +1000,7 @@ def prove_location():
         }
 
         # Verify signature
-        if not verify_signature(proof_data, signature, public_key):
+        if not verify_signature(proof_data, signature, private_key):
             return jsonify({
                 'success': False,
                 'result': 'DENY',
@@ -683,16 +1025,28 @@ def prove_location():
             }), 400
 
         # Get stored phone location
-        phone_location = mock_user_locations.get(card_token)
-        if not phone_location:
-            return jsonify({
-                'success': False,
-                'result': 'DENY',
-                'reason': 'Phone location not available'
-            }), 400
+        user_data = mock_user_locations.get(card_token)
+        if not user_data:
+            # For demo purposes, create a default location for any new card
+            default_location = (42.3770, -71.1167)  # Harvard Square default
+            mock_user_locations[card_token] = {
+                'location': default_location,
+                'phone': '+1234567890'
+            }
+            user_data = mock_user_locations[card_token]
+        
+        phone_location = user_data['location']
 
-        # Validate location proximity
-        trans_coords = (location['lat'], location['lon'])
+        # Validate location proximity with 8 decimal precision
+        trans_coords = (round(float(location['lat']), 8), round(float(location['lon']), 8))
+        
+        # DEBUG: Log the coordinates being used
+        print(f"\n=== LOCATION VALIDATION DEBUG (prove_location) ===")
+        print(f"Phone location (from mock_user_locations): {phone_location}")
+        print(f"Transaction location (from location proof): {trans_coords}")
+        print(f"Card token: {card_token}")
+        print(f"=== END LOCATION VALIDATION DEBUG ===\n")
+        
         validation_result = validator.validate_transaction(phone_location, trans_coords)
         
         distance_meters = validation_result['distance_miles'] * 1609.34  # Convert to meters
@@ -745,4 +1099,4 @@ def health_check():
     return jsonify({'status': 'ok', 'service': 'ProxyPay API'}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
