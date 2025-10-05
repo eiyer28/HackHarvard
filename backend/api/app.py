@@ -1378,4 +1378,11 @@ def health_check():
     return jsonify({'status': 'ok', 'service': 'ProxyPay API'}), 200
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    import ssl
+    
+    # Create SSL context
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+    ssl_context.load_cert_chain('cert.pem', 'key.pem')
+    
+    # Run with HTTPS support
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000, ssl_context=ssl_context)

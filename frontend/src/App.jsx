@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 
-const API_URL = "http://3.17.71.163:5000/api/transaction/validate";
-const WS_URL = "http://3.17.71.163:5000";
+// Use HTTP for local development, HTTPS for production
+const isProduction = window.location.protocol === "https:";
+const PROTOCOL = isProduction ? "https" : "http";
+const API_URL = `${PROTOCOL}://3.17.71.163:5000/api/transaction/validate`;
+const WS_URL = `${PROTOCOL}://3.17.71.163:5000`;
 
 function App() {
   const [formData, setFormData] = useState({
