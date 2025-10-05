@@ -1,5 +1,6 @@
-import { Image } from "expo-image";
-import React, { useState } from "react";
+import { Image } from "react-native";
+import * as React from "react";
+import { useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -8,6 +9,7 @@ import {
   Pressable,
   View,
 } from "react-native";
+import { useCards } from "../../src/contexts/CardContext";
 
 import { Collapsible } from "@/components/ui/collapsible";
 import { ExternalLink } from "@/components/external-link";
@@ -19,31 +21,7 @@ import { Fonts } from "@/constants/theme";
 import CardInfo from "@/components/cardInfo";
 
 export default function Wallet() {
-  const initialCards = [
-    {
-      cardType: "Visa",
-      cardNumber: "4111111111111111",
-      cardHolder: "Jane Doe",
-      expiry: "12/26",
-      brandColor: "#1a73e8",
-    },
-    {
-      cardType: "Mastercard",
-      cardNumber: "5555555555554444",
-      cardHolder: "Jane Doe",
-      expiry: "09/25",
-      brandColor: "#ff5f00",
-    },
-    {
-      cardType: "Amex",
-      cardNumber: "378282246310005",
-      cardHolder: "Jane Doe",
-      expiry: "03/27",
-      brandColor: "#2ecc71",
-    },
-  ];
-
-  const [cards, setCards] = useState(initialCards);
+  const { cards, addCard } = useCards();
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({
     cardType: "",
@@ -95,32 +73,32 @@ export default function Wallet() {
             <TextInput
               placeholder="Card Type (Visa, Mastercard)"
               value={form.cardType}
-              onChangeText={(t) => setForm({ ...form, cardType: t })}
+              onChangeText={(t: string) => setForm({ ...form, cardType: t })}
               style={styles.input}
             />
             <TextInput
               placeholder="Card Number"
               value={form.cardNumber}
-              onChangeText={(t) => setForm({ ...form, cardNumber: t })}
+              onChangeText={(t: string) => setForm({ ...form, cardNumber: t })}
               keyboardType="numeric"
               style={styles.input}
             />
             <TextInput
               placeholder="Cardholder Name"
               value={form.cardHolder}
-              onChangeText={(t) => setForm({ ...form, cardHolder: t })}
+              onChangeText={(t: string) => setForm({ ...form, cardHolder: t })}
               style={styles.input}
             />
             <TextInput
               placeholder="Expiry (MM/YY)"
               value={form.expiry}
-              onChangeText={(t) => setForm({ ...form, expiry: t })}
+              onChangeText={(t: string) => setForm({ ...form, expiry: t })}
               style={styles.input}
             />
             <TextInput
               placeholder="Brand color (hex)"
               value={form.brandColor}
-              onChangeText={(t) => setForm({ ...form, brandColor: t })}
+              onChangeText={(t: string) => setForm({ ...form, brandColor: t })}
               style={styles.input}
             />
 
@@ -131,16 +109,13 @@ export default function Wallet() {
                   // simple validation
                   if (!form.cardNumber || !form.cardType)
                     return setAdding(false);
-                  setCards((prev) => [
-                    ...prev,
-                    {
-                      cardType: form.cardType || "Card",
-                      cardNumber: form.cardNumber || "",
-                      cardHolder: form.cardHolder || "Cardholder",
-                      expiry: form.expiry || "MM/YY",
-                      brandColor: form.brandColor || "#666",
-                    },
-                  ]);
+                  addCard({
+                    cardType: form.cardType || "Card",
+                    cardNumber: form.cardNumber || "",
+                    cardHolder: form.cardHolder || "Cardholder",
+                    expiry: form.expiry || "MM/YY",
+                    brandColor: form.brandColor || "#666",
+                  });
                   setForm({
                     cardType: "",
                     cardNumber: "",

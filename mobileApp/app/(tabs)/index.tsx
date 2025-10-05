@@ -19,8 +19,11 @@ import {
 } from "../../src/services/WebSocketService";
 import TransactionConfirmationModal from "../../components/TransactionConfirmationModal";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { CardDropdown } from "../../components/CardDropdown";
+import { useCards } from "../../src/contexts/CardContext";
 
 export default function HomeScreen() {
+  const { selectedCard } = useCards();
   const [isRegistered, setIsRegistered] = useState(false);
   const [cardToken, setCardToken] = useState("4532-1234-5678-9012");
   const [publicKey, setPublicKey] = useState("");
@@ -42,6 +45,13 @@ export default function HomeScreen() {
     connectWebSocket();
     setupConfirmationHandler();
   }, []);
+
+  // Update cardToken when selected card changes
+  useEffect(() => {
+    if (selectedCard) {
+      setCardToken(selectedCard.cardNumber);
+    }
+  }, [selectedCard]);
 
   const setupConfirmationHandler = () => {
     webSocketService.setConfirmationCallback((request: ConfirmationRequest) => {
@@ -341,13 +351,8 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Card Token</Text>
-        <TextInput
-          style={styles.input}
-          value={cardToken}
-          onChangeText={setCardToken}
-          placeholder="Enter card token"
-        />
+        <Text style={styles.cardTitle}>Card Selection</Text>
+        <CardDropdown onCardSelect={setCardToken} />
       </View>
 
       <TouchableOpacity
