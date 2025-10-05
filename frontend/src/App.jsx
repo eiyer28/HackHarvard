@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import { io } from "socket.io-client";
+import "./App.css";
 
-const API_URL = "http://localhost:5000/api/transaction/validate";
+const API_URL = "http://3.17.71.163:5000/api/transaction/validate";
 const WS_URL = "http://localhost:5000";
 
 function App() {
   const [formData, setFormData] = useState({
-    cardNumber: '4532-1234-5678-9012',
-    merchantName: 'Harvard Square Coffee',
-    amount: '25.00',
-    latitude: '42.3770',
-    longitude: '-71.1167'
+    cardNumber: "4532-1234-5678-9012",
+    merchantName: "Harvard Square Coffee",
+    amount: "25.00",
+    latitude: "42.3770",
+    longitude: "-71.1167",
   });
 
   const [loading, setLoading] = useState(false);
@@ -50,24 +50,25 @@ function App() {
     if (result.success) {
       setResult({
         type: result.result === "ACCEPT" ? "approved" : "denied",
-        header: result.result === "ACCEPT"
-          ? "✓ Transaction Approved"
-          : result.result === "CONFIRM_REQUIRED"
-          ? "⚠️ Manual Confirmation Required"
-          : "✗ Transaction Denied",
+        header:
+          result.result === "ACCEPT"
+            ? "✓ Transaction Approved"
+            : result.result === "CONFIRM_REQUIRED"
+            ? "⚠️ Manual Confirmation Required"
+            : "✗ Transaction Denied",
         details: {
           result: result.result,
           reason: result.reason,
-          distance: result.distance_meters
-        }
+          distance: result.distance_meters,
+        },
       });
     } else {
       setResult({
         type: "denied",
         header: "✗ Transaction Failed",
         details: {
-          error: result.reason
-        }
+          error: result.reason,
+        },
       });
     }
   };
@@ -76,16 +77,16 @@ function App() {
     setResult({
       type: "denied",
       header: "Error",
-      details: { error: message }
+      details: { error: message },
     });
     setLoading(false);
   };
 
   const setLocation = (lat, lon) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       latitude: lat.toString(),
-      longitude: lon.toString()
+      longitude: lon.toString(),
     }));
   };
 
@@ -100,10 +101,10 @@ function App() {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           latitude: lat.toFixed(8),
-          longitude: lon.toFixed(8)
+          longitude: lon.toFixed(8),
         }));
       },
       (error) => {
@@ -111,7 +112,8 @@ function App() {
 
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMsg = "Location permission denied. Please enable location access in your browser.";
+            errorMsg =
+              "Location permission denied. Please enable location access in your browser.";
             break;
           case error.POSITION_UNAVAILABLE:
             errorMsg = "Location information unavailable.";
@@ -135,20 +137,20 @@ function App() {
     const { name, value } = e.target;
 
     // Format credit card number with spaces
-    if (name === 'cardNumber') {
+    if (name === "cardNumber") {
       const formatted = value
-        .replace(/\s/g, '')
-        .replace(/(.{4})/g, '$1 ')
+        .replace(/\s/g, "")
+        .replace(/(.{4})/g, "$1 ")
         .trim()
         .substring(0, 19); // Max length: 4444 4444 4444 4444
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: formatted
+        [name]: formatted,
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
@@ -172,8 +174,10 @@ function App() {
 
     try {
       // Generate unique transaction ID and nonce
-      const transactionId = "tx_" + Date.now() + "_" + Math.random().toString(36).substring(2);
-      const transactionNonce = "nonce_" + Math.random().toString(36).substring(2);
+      const transactionId =
+        "tx_" + Date.now() + "_" + Math.random().toString(36).substring(2);
+      const transactionNonce =
+        "nonce_" + Math.random().toString(36).substring(2);
 
       setCurrentTransactionId(transactionId);
 
@@ -196,7 +200,9 @@ function App() {
       console.log("Location proof requested for transaction:", transactionId);
     } catch (error) {
       console.error("Transaction error:", error);
-      showError("Failed to request location proof. Make sure the backend is running on http://localhost:5000");
+      showError(
+        "Failed to request location proof. Make sure the backend is running on http://localhost:5000"
+      );
     }
   };
 
@@ -204,7 +210,11 @@ function App() {
     <div className="container">
       <div className="demo-badge">DEMO MODE</div>
       <div className="header-section">
-        <img src="/assets/proxypaylogo.png" alt="ProxyPay Logo" className="logo" />
+        <img
+          src="/assets/proxypaylogo.png"
+          alt="ProxyPay Logo"
+          className="logo"
+        />
         <h1>ProxyPay Transaction Simulator</h1>
       </div>
       <p className="subtitle">Test location-based transaction validation</p>
@@ -260,7 +270,7 @@ function App() {
             <button
               type="button"
               className="preset-btn"
-              onClick={() => setLocation(42.3770, -71.1167)}
+              onClick={() => setLocation(42.377, -71.1167)}
             >
               Harvard Campus
             </button>
@@ -274,7 +284,7 @@ function App() {
             <button
               type="button"
               className="preset-btn"
-              onClick={() => setLocation(40.7128, -74.0060)}
+              onClick={() => setLocation(40.7128, -74.006)}
             >
               New York City
             </button>
@@ -335,7 +345,9 @@ function App() {
       {loading && (
         <div className="loading">
           <div className="spinner"></div>
-          <p style={{ marginTop: '10px', color: '#666' }}>Processing transaction...</p>
+          <p style={{ marginTop: "10px", color: "#666" }}>
+            Processing transaction...
+          </p>
         </div>
       )}
 
@@ -346,19 +358,23 @@ function App() {
             {result.details.result && (
               <>
                 <div className="result-detail-item">
-                  <span className="result-detail-label">Result:</span> {result.details.result}
+                  <span className="result-detail-label">Result:</span>{" "}
+                  {result.details.result}
                 </div>
                 <div className="result-detail-item">
-                  <span className="result-detail-label">Reason:</span> {result.details.reason}
+                  <span className="result-detail-label">Reason:</span>{" "}
+                  {result.details.reason}
                 </div>
                 <div className="result-detail-item">
-                  <span className="result-detail-label">Distance:</span> {result.details.distance}m
+                  <span className="result-detail-label">Distance:</span>{" "}
+                  {result.details.distance}m
                 </div>
               </>
             )}
             {result.details.error && (
               <div className="result-detail-item">
-                <span className="result-detail-label">Error:</span> {result.details.error}
+                <span className="result-detail-label">Error:</span>{" "}
+                {result.details.error}
               </div>
             )}
           </div>
@@ -366,9 +382,14 @@ function App() {
       )}
 
       <div className="footer">
-        <p>Built for HackHarvard 2025 • Securing transactions through location intelligence</p>
+        <p>
+          Built for HackHarvard 2025 • Securing transactions through location
+          intelligence
+        </p>
         {currentTransactionId && (
-          <p className="transaction-id">Transaction ID: <code>{currentTransactionId}</code></p>
+          <p className="transaction-id">
+            Transaction ID: <code>{currentTransactionId}</code>
+          </p>
         )}
       </div>
     </div>
