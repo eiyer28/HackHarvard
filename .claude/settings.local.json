@@ -10,7 +10,9 @@
       "Bash(py test_api.py)",
       "WebSearch",
       "WebFetch(domain:www.twilio.com)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(del index.html)",
+      "Bash(ren:*)"
     ],
     "deny": [],
     "ask": []
