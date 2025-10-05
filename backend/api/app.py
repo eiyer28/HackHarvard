@@ -428,11 +428,17 @@ def verify_location_proof(location_proof, pending_transaction):
         
         distance_meters = validation_result['distance_miles'] * 1609.34  # Convert to meters
 
-        # Decision logic based on distance
-        if distance_meters <= 10:  # Within 300 meters
-            result = 'ACCEPT'
-            reason = 'Co-located transaction'
-        elif distance_meters <= 1000:  # Within 1000 meters
+        # Decision logic based on distance and amount
+        amount = pending_transaction.get('amount', 0)
+        
+        if distance_meters <= 20:  # Within 20 meters
+            if amount > 100:  # High-value transaction requires confirmation
+                result = 'CONFIRM_REQUIRED'
+                reason = 'High-value transaction - confirmation required'
+            else:
+                result = 'ACCEPT'
+                reason = 'Co-located transaction'
+        elif distance_meters <= 500:  # Within 500 meters
             result = 'CONFIRM_REQUIRED'
             reason = 'Location mismatch - confirmation required'
         else:  # Too far
@@ -1069,10 +1075,16 @@ def prove_location():
         
         distance_meters = validation_result['distance_miles'] * 1609.34  # Convert to meters
 
-        # Decision logic based on distance
-        if distance_meters <= 20:  # Within 15 meters
-            result = 'ACCEPT'
-            reason = 'Co-located transaction'
+        # Decision logic based on distance and amount
+        amount = data.get('amount', 0)  # Get amount from request data
+        
+        if distance_meters <= 20:  # Within 20 meters
+            if amount > 100:  # High-value transaction requires confirmation
+                result = 'CONFIRM_REQUIRED'
+                reason = 'High-value transaction - confirmation required'
+            else:
+                result = 'ACCEPT'
+                reason = 'Co-located transaction'
         elif distance_meters <= 500:  # Within 500 meters
             result = 'CONFIRM_REQUIRED'
             reason = 'Location mismatch - confirmation required'
