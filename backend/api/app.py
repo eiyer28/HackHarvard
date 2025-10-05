@@ -36,13 +36,27 @@ CORS(app,
      supports_credentials=True
 )
 
-socketio = SocketIO(app, cors_allowed_origins=[
-    "https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173"
-])
+socketio = SocketIO(app, 
+    cors_allowed_origins=[
+        "https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173"
+    ],
+    cors_credentials=True,
+    allow_upgrades=True,
+    transports=['polling', 'websocket']
+)
+
+# Add explicit CORS handling for Socket.IO
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 # Configure Swagger UI
 swagger_config = {
