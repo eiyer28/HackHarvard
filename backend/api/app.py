@@ -553,10 +553,16 @@ def verify_location_proof(location_proof, pending_transaction):
         
         distance_meters = validation_result['distance_miles'] * 1609.34  # Convert to meters
 
-        # Decision logic based on distance
-        if distance_meters <= 15:  # Within 15 meters
-            result = 'ACCEPT'
-            reason = 'Co-located transaction'
+        # Decision logic based on distance and amount
+        amount = pending_transaction.get('amount', 0)
+        
+        if distance_meters <= 15:
+            if amount < 100:
+                result = 'ACCEPT'
+                reason = 'Co-located low-value transaction'
+            else:
+                result = 'CONFIRM_REQUIRED'
+                reason = 'High-value co-located transaction requires confirmation'
         elif distance_meters <= 500:  # Within 500 meters
             result = 'CONFIRM_REQUIRED'
             reason = 'Location mismatch - confirmation required'
