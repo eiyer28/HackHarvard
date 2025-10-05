@@ -21,8 +21,28 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from geospatial.validator import LocationValidator
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend requests
-socketio = SocketIO(app, cors_allowed_origins="*")  # Enable WebSocket with CORS
+
+# Configure CORS to allow your Vercel domain
+CORS(app, 
+     origins=[
+         "https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app",
+         "http://localhost:3000",  # For local development
+         "http://localhost:5173",  # For Vite dev server
+         "http://127.0.0.1:3000",
+         "http://127.0.0.1:5173"
+     ],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+     supports_credentials=True
+)
+
+socketio = SocketIO(app, cors_allowed_origins=[
+    "https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173"
+])
 
 # Configure Swagger UI
 swagger_config = {
