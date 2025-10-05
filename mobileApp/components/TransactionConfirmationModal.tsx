@@ -161,7 +161,7 @@ export default function TransactionConfirmationModal({
                 <Text style={styles.confirmButtonText}>
                   {biometricAvailable
                     ? `Confirm with ${biometricType}`
-                    : "Confirm"}
+                    : "Confirm with Passcode"}
                 </Text>
               )}
             </TouchableOpacity>

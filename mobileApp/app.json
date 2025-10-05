@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "This app uses Face ID to securely confirm transactions and authenticate your identity.",
+        "NSFaceIDUsageDescription": "This app uses Face ID or passcode to securely confirm transactions and authenticate your identity.",
         "NSLocationWhenInUseUsageDescription": "This app uses your location to verify transaction proximity for security purposes.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to verify transaction proximity for security purposes."
       }
@@ -55,7 +55,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "This app uses Face ID to securely confirm transactions and authenticate your identity."
+          "faceIDPermission": "This app uses Face ID or passcode to securely confirm transactions and authenticate your identity."
         }
       ]
     ],

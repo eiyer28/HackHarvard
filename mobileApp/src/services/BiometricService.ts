@@ -41,20 +41,12 @@ export class BiometricService {
     reason: string = "Authenticate to confirm transaction"
   ): Promise<BiometricResult> {
     try {
-      const isAvailable = await this.isAvailable();
-      if (!isAvailable) {
-        return {
-          success: false,
-          error: "Biometric authentication not available on this device",
-        };
-      }
-
-      // Force Face ID/Touch ID authentication
+      // Allow authentication even if biometrics aren't available (will use passcode)
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: reason,
         cancelLabel: "Cancel",
         fallbackLabel: "Use Passcode",
-        disableDeviceFallback: true, // Disable passcode fallback to force biometric
+        disableDeviceFallback: false, // Allow passcode fallback
       });
 
       if (result.success) {
