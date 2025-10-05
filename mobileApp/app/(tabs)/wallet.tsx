@@ -72,12 +72,14 @@ export default function Wallet() {
             <ThemedText type="title">Add a new card</ThemedText>
             <TextInput
               placeholder="Card Type (Visa, Mastercard)"
+              placeholderTextColor="#666666"
               value={form.cardType}
               onChangeText={(t: string) => setForm({ ...form, cardType: t })}
               style={styles.input}
             />
             <TextInput
               placeholder="Card Number"
+              placeholderTextColor="#666666"
               value={form.cardNumber}
               onChangeText={(t: string) => setForm({ ...form, cardNumber: t })}
               keyboardType="numeric"
@@ -85,18 +87,21 @@ export default function Wallet() {
             />
             <TextInput
               placeholder="Cardholder Name"
+              placeholderTextColor="#666666"
               value={form.cardHolder}
               onChangeText={(t: string) => setForm({ ...form, cardHolder: t })}
               style={styles.input}
             />
             <TextInput
               placeholder="Expiry (MM/YY)"
+              placeholderTextColor="#666666"
               value={form.expiry}
               onChangeText={(t: string) => setForm({ ...form, expiry: t })}
               style={styles.input}
             />
             <TextInput
               placeholder="Brand color (hex)"
+              placeholderTextColor="#666666"
               value={form.brandColor}
               onChangeText={(t: string) => setForm({ ...form, brandColor: t })}
               style={styles.input}
