@@ -265,7 +265,7 @@ cd frontend
 cd mobile-app
 npm install
 expo start
-```
+``` 
 
 ---
 
