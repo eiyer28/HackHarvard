@@ -49,11 +49,12 @@ export class BiometricService {
         };
       }
 
+      // Force Face ID/Touch ID authentication
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: reason,
         cancelLabel: "Cancel",
         fallbackLabel: "Use Passcode",
-        disableDeviceFallback: false,
+        disableDeviceFallback: true, // Disable passcode fallback to force biometric
       });
 
       if (result.success) {

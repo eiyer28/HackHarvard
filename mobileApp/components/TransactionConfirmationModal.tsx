@@ -151,14 +151,6 @@ export default function TransactionConfirmationModal({
 
           <View style={styles.buttons}>
             <TouchableOpacity
-              style={[styles.button, styles.denyButton]}
-              onPress={handleDeny}
-              disabled={isAuthenticating}
-            >
-              <Text style={styles.denyButtonText}>Deny</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={[styles.button, styles.confirmButton]}
               onPress={handleConfirm}
               disabled={isAuthenticating}
@@ -174,18 +166,13 @@ export default function TransactionConfirmationModal({
               )}
             </TouchableOpacity>
 
-            {biometricAvailable && (
-              <TouchableOpacity
-                style={[styles.button, styles.skipButton]}
-                onPress={() => {
-                  console.log("⏭️ Skipping biometric authentication");
-                  onConfirm(transactionData.transaction_id);
-                }}
-                disabled={isAuthenticating}
-              >
-                <Text style={styles.skipButtonText}>Skip & Confirm</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.button, styles.denyButton]}
+              onPress={handleDeny}
+              disabled={isAuthenticating}
+            >
+              <Text style={styles.denyButtonText}>Deny</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -281,7 +268,7 @@ const styles = StyleSheet.create({
   buttons: {
     flexDirection: "row",
     padding: 24,
-    gap: 12,
+    gap: 16,
   },
   button: {
     flex: 1,
@@ -292,7 +279,7 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   denyButton: {
-    backgroundColor: "#FF3B30",
+    backgroundColor: "#007AFF", // Blue
   },
   denyButtonText: {
     color: "white",
@@ -300,19 +287,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   confirmButton: {
-    backgroundColor: "#34C759",
+    backgroundColor: "#FFD700", // Yellow
   },
   confirmButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  skipButton: {
-    backgroundColor: "#FF9500",
-  },
-  skipButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    color: "#000000", // Black text for better contrast on yellow
   },
 });
