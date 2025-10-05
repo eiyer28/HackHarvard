@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID to securely confirm transactions and authenticate your identity.",
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to verify transaction proximity for security purposes.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to verify transaction proximity for security purposes."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +25,17 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "package": "com.anonymous.MyReactNativeApp"
     },
     "web": {
       "output": "static",
@@ -38,6 +53,12 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "This app uses Face ID to securely confirm transactions and authenticate your identity."
         }
       ]
     ],
