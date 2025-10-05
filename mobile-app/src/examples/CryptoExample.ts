@@ -30,7 +30,7 @@ export class CryptoExample {
 
       // Register with backend
       const response = await fetch(
-        "http://localhost:5000/api/register-device",
+        "http://3.17.71.163:5000/api/register-device",
         {
           method: "POST",
           headers: {

@@ -260,7 +260,7 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:5000/api/transaction/validate';
+        const API_URL = 'http://3.17.71.163:5000/api/transaction/validate';
 
         function setLocation(lat, lon, name) {
             document.getElementById('latitude').value = lat;
@@ -419,7 +419,7 @@
                 resultDiv.className = 'result denied';
                 document.getElementById('resultHeader').textContent = 'Error';
                 document.getElementById('resultDetails').textContent =
-                    'Failed to connect to API. Make sure the backend is running on http://localhost:5000';
+                    'Failed to connect to API. Make sure the backend is running on http://3.17.71.163:5000';
                 resultDiv.style.display = 'block';
             }
         });

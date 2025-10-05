@@ -73,15 +73,24 @@ export class LocationProofService {
     signature: string
   ): Promise<ProofSubmissionResult> {
     try {
-      const response = await fetch("http://localhost:5000/api/prove-location", {
+      // Read the CBOR attestation file
+      const cborFile = require('./cca_example_token.cbor');
+
+      // Create FormData to send both JSON and binary file
+      const formData = new FormData();
+      formData.append('proof_data', JSON.stringify({
+        ...proof,
+        signature: signature,
+      }));
+
+      // Fetch the CBOR file as blob
+      const cborResponse = await fetch(cborFile);
+      const cborBlob = await cborResponse.blob();
+      formData.append('attestation_cbor', cborBlob, 'cca_example_token.cbor');
+
+      const response = await fetch("http://3.17.71.163:5000/api/prove-location", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...proof,
-          signature: signature,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
