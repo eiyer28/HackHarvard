@@ -556,7 +556,7 @@ def verify_location_proof(location_proof, pending_transaction):
         # Decision logic based on distance and amount
         amount = pending_transaction.get('amount', 0)
         
-        if distance_meters <= 15:
+        if distance_meters <= 20:
             if amount < 100:
                 result = 'ACCEPT'
                 reason = 'Co-located low-value transaction'
