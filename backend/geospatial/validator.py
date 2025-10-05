@@ -35,9 +35,9 @@ class LocationValidator:
 
         return {
             'valid': is_valid,
-            'distance_miles': round(distance, 2),
+            'distance_miles': round(distance, 6),  # Increased precision to 6 decimal places
             'reason': f'Transaction within {self.max_distance_miles} miles' if is_valid
-                     else f'Transaction {round(distance, 2)} miles away (max: {self.max_distance_miles})'
+                     else f'Transaction {round(distance, 6)} miles away (max: {self.max_distance_miles})'
         }
 
     def set_max_distance(self, miles: float):

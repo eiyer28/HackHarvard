@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Image } from "expo-image";
 import {
   StyleSheet,
   Text,
@@ -9,6 +8,7 @@ import {
   ScrollView,
   TextInput,
   Platform,
+  Image,
 } from "react-native";
 import { CryptoService } from "../../src/services/CryptoService";
 import { AttestationService } from "../../src/services/AttestationService";
@@ -26,6 +26,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [locationUpdateCount, setLocationUpdateCount] = useState(0);
+  const [phoneRegistered, setPhoneRegistered] = useState(false);
 
   useEffect(() => {
     checkRegistration();
@@ -47,9 +48,22 @@ export default function HomeScreen() {
       await webSocketService.connect();
       setIsWebSocketConnected(true);
       console.log("🔌 WebSocket connected");
+
+      // If device is already registered, try to register phone again
+      if (isRegistered) {
+        try {
+          await webSocketService.registerPhone(cardToken);
+          setPhoneRegistered(true);
+          console.log("📱 Phone auto-registered after WebSocket reconnection");
+        } catch (error) {
+          console.error("❌ Auto phone registration failed:", error);
+          setPhoneRegistered(false);
+        }
+      }
     } catch (error) {
       console.error("❌ WebSocket connection failed:", error);
       setIsWebSocketConnected(false);
+      setPhoneRegistered(false);
     }
   };
 
@@ -160,8 +174,18 @@ export default function HomeScreen() {
 
         // Register with WebSocket
         if (isWebSocketConnected) {
-          webSocketService.registerPhone(cardToken);
-          console.log("📱 Phone registered with WebSocket");
+          try {
+            await webSocketService.registerPhone(cardToken);
+            console.log("📱 Phone registered with WebSocket successfully");
+            setPhoneRegistered(true);
+          } catch (error) {
+            console.error("❌ Failed to register phone with WebSocket:", error);
+            setPhoneRegistered(false);
+            Alert.alert(
+              "WebSocket Registration Failed",
+              "Device registered but phone registration failed. Please try reconnecting."
+            );
+          }
         }
 
         Alert.alert("Success", "Device registered successfully!");
@@ -174,6 +198,40 @@ export default function HomeScreen() {
       Alert.alert(
         "Error",
         "Registration failed: " +
+          (error instanceof Error ? error.message : String(error))
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const retryPhoneRegistration = async () => {
+    console.log("📱 Retry phone registration called");
+    console.log("📱 WebSocket connected:", isWebSocketConnected);
+    console.log("📱 Device registered:", isRegistered);
+    console.log("📱 Card token:", cardToken);
+
+    if (!isWebSocketConnected || !isRegistered) {
+      Alert.alert(
+        "Error",
+        "Please ensure WebSocket is connected and device is registered first"
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log("📱 Calling webSocketService.registerPhone...");
+      await webSocketService.registerPhone(cardToken);
+      setPhoneRegistered(true);
+      console.log("📱 Phone registration retry successful");
+      Alert.alert("Success", "Phone registered successfully!");
+    } catch (error) {
+      console.error("❌ Phone registration retry failed:", error);
+      setPhoneRegistered(false);
+      Alert.alert(
+        "Registration Failed",
+        "Failed to register phone: " +
           (error instanceof Error ? error.message : String(error))
       );
     } finally {
@@ -231,6 +289,20 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.cardTitle}>Connection Status</Text>
+        <Text style={styles.statusText}>
+          🔌 WebSocket:{" "}
+          {isWebSocketConnected ? "✅ Connected" : "❌ Disconnected"}
+        </Text>
+        <Text style={styles.statusText}>
+          📱 Phone: {phoneRegistered ? "✅ Registered" : "❌ Not Registered"}
+        </Text>
+        <Text style={styles.statusText}>
+          🔐 Device: {isRegistered ? "✅ Registered" : "❌ Not Registered"}
+        </Text>
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.cardTitle}>Card Token</Text>
         <TextInput
           style={styles.input}
@@ -256,6 +328,18 @@ export default function HomeScreen() {
           onPress={connectWebSocket}
         >
           <Text style={styles.buttonText}>Reconnect WebSocket</Text>
+        </TouchableOpacity>
+      )}
+
+      {isRegistered && isWebSocketConnected && !phoneRegistered && (
+        <TouchableOpacity
+          style={[styles.button, styles.buttonWarning]}
+          onPress={retryPhoneRegistration}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>
+            {isLoading ? "Registering..." : "Retry Phone Registration"}
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -332,11 +416,6 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 9, // 15% smaller (10 -> 8.5 -> 9)
   },
-  statusText: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 4, // 15% smaller (5 -> 4.25 -> 4)
-  },
   keyText: {
     fontSize: 12,
     color: "#666",
@@ -351,6 +430,12 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
     marginTop: 3, // 15% smaller (4 -> 3.4 -> 3)
+  },
+  statusText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 5,
+    fontFamily: "monospace",
   },
   locationHeader: {
     flexDirection: "row",
