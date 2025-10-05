@@ -329,8 +329,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script>
-      const API_URL = "http://localhost:5000/api/transaction/validate";
-      const WS_URL = "http://localhost:5000";
+      const API_URL = "http://3.17.71.163:5000/api/transaction/validate";
+      const WS_URL = "http://3.17.71.163:5000";
 
       // Initialize WebSocket connection
       const socket = io(WS_URL);
@@ -530,7 +530,7 @@
           } catch (error) {
             console.error("Transaction error:", error);
             showError(
-              "Failed to request location proof. Make sure the backend is running on http://localhost:5000"
+              "Failed to request location proof. Make sure the backend is running on http://3.17.71.163:5000"
             );
           }
         });
