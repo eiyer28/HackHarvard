@@ -29,10 +29,6 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ],
       "package": "com.anonymous.MyReactNativeApp"
@@ -43,6 +39,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
