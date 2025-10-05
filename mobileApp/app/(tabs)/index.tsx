@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Image } from "expo-image";
 import {
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import { CryptoService } from "../../src/services/CryptoService";
 import { AttestationService } from "../../src/services/AttestationService";
 import { LocationProofService } from "../../src/services/LocationProofService";
 import { webSocketService } from "../../src/services/WebSocketService";
+import ParallaxScrollView from "@/components/parallax-scroll-view";
 
 export default function HomeScreen() {
   const [isRegistered, setIsRegistered] = useState(false);
@@ -180,12 +182,15 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>ProxyPay Mobile</Text>
-        <Text style={styles.subtitle}>Location-based transaction security</Text>
-      </View>
-
+    <ParallaxScrollView
+      headerBackgroundColor={{ light: "#ffffff", dark: "#FFFFFF" }}
+      headerImage={
+        <Image
+          source={require("@/assets/images/logo.jpeg")}
+          style={styles.logo}
+        />
+      }
+    >
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Device Status</Text>
         <Text style={styles.statusText}>
@@ -286,7 +291,7 @@ export default function HomeScreen() {
           <Text style={styles.buttonText}>Reset Device</Text>
         </TouchableOpacity>
       )}
-    </ScrollView>
+    </ParallaxScrollView>
   );
 }
 
@@ -294,17 +299,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-    padding: 20,
+    padding: 17, // 15% smaller (20 -> 17)
   },
   header: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 26, // 15% smaller (30 -> 25.5 -> 26)
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 5,
+    marginBottom: 4, // 15% smaller (5 -> 4.25 -> 4)
   },
   subtitle: {
     fontSize: 16,
@@ -312,9 +317,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "white",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 10, // 15% smaller (12 -> 10.2 -> 10)
+    padding: 17, // 15% smaller (20 -> 17)
+    marginBottom: 17, // 15% smaller (20 -> 17)
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -325,12 +330,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 10,
+    marginBottom: 9, // 15% smaller (10 -> 8.5 -> 9)
   },
   statusText: {
     fontSize: 16,
     color: "#333",
-    marginBottom: 5,
+    marginBottom: 4, // 15% smaller (5 -> 4.25 -> 4)
   },
   keyText: {
     fontSize: 12,
@@ -345,19 +350,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     fontStyle: "italic",
-    marginTop: 4,
+    marginTop: 3, // 15% smaller (4 -> 3.4 -> 3)
   },
   locationHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 9, // 15% smaller (10 -> 8.5 -> 9)
   },
   refreshButton: {
     backgroundColor: "#007AFF",
-    borderRadius: 20,
-    width: 40,
-    height: 40,
+    borderRadius: 17, // 15% smaller (20 -> 17)
+    width: 34, // 15% smaller (40 -> 34)
+    height: 34, // 15% smaller (40 -> 34)
     justifyContent: "center",
     alignItems: "center",
   },
@@ -368,17 +373,17 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 7, // 15% smaller (8 -> 6.8 -> 7)
+    padding: 10, // 15% smaller (12 -> 10.2 -> 10)
     fontSize: 16,
     backgroundColor: "#f9f9f9",
   },
   button: {
     backgroundColor: "#007AFF",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10, // 15% smaller (12 -> 10.2 -> 10)
+    padding: 14, // 15% smaller (16 -> 13.6 -> 14)
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 13, // 15% smaller (15 -> 12.75 -> 13)
   },
   buttonSecondary: {
     backgroundColor: "#34C759",
@@ -393,5 +398,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  logo: {
+    height: 85, // 15% smaller (100 -> 85)
+    width: 247, // 15% smaller (290 -> 246.5 -> 247)
+    alignSelf: "center",
+    marginTop: 43, // 15% smaller (50 -> 42.5 -> 43)
   },
 });
