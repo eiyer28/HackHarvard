@@ -12,6 +12,14 @@ export interface TransactionRequest {
   merchant_name: string;
 }
 
+export interface ConfirmationRequest {
+  transaction_id: string;
+  amount: number;
+  merchant_name: string;
+  distance_meters: number;
+  reason: string;
+}
+
 export interface LocationProofResponse {
   transaction_id: string;
   location_proof: any;
@@ -21,6 +29,9 @@ class WebSocketService {
   private socket: Socket | null = null;
   private isConnected = false;
   private cardToken: string | null = null;
+  private confirmationCallback:
+    | ((request: ConfirmationRequest) => void)
+    | null = null;
 
   connect(serverUrl: string = "http://3.17.71.163:5000"): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -57,6 +68,13 @@ class WebSocketService {
         this.socket.on("location_proof_request", (data: TransactionRequest) => {
           console.log("📱 Location proof requested:", data);
           this.handleLocationProofRequest(data);
+        });
+
+        this.socket.on("confirmation_request", (data: ConfirmationRequest) => {
+          console.log("📱 Confirmation requested:", data);
+          if (this.confirmationCallback) {
+            this.confirmationCallback(data);
+          }
         });
 
         this.socket.on("error", (data) => {
@@ -199,6 +217,26 @@ class WebSocketService {
 
   getCardToken(): string | null {
     return this.cardToken;
+  }
+
+  setConfirmationCallback(
+    callback: (request: ConfirmationRequest) => void
+  ): void {
+    this.confirmationCallback = callback;
+  }
+
+  sendConfirmationResponse(transactionId: string, confirmed: boolean): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit("confirmation_response", {
+        transaction_id: transactionId,
+        confirmed: confirmed,
+      });
+      console.log(
+        `📱 Confirmation response sent: ${
+          confirmed ? "APPROVED" : "DENIED"
+        } for transaction ${transactionId}`
+      );
+    }
   }
 }
 

@@ -13,7 +13,11 @@ import {
 import { CryptoService } from "../../src/services/CryptoService";
 import { AttestationService } from "../../src/services/AttestationService";
 import { LocationProofService } from "../../src/services/LocationProofService";
-import { webSocketService } from "../../src/services/WebSocketService";
+import {
+  webSocketService,
+  ConfirmationRequest,
+} from "../../src/services/WebSocketService";
+import TransactionConfirmationModal from "../../components/TransactionConfirmationModal";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 
 export default function HomeScreen() {
@@ -27,12 +31,25 @@ export default function HomeScreen() {
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [locationUpdateCount, setLocationUpdateCount] = useState(0);
   const [phoneRegistered, setPhoneRegistered] = useState(false);
+  const [confirmationModalVisible, setConfirmationModalVisible] =
+    useState(false);
+  const [pendingConfirmation, setPendingConfirmation] =
+    useState<ConfirmationRequest | null>(null);
 
   useEffect(() => {
     checkRegistration();
     getCurrentLocation();
     connectWebSocket();
+    setupConfirmationHandler();
   }, []);
+
+  const setupConfirmationHandler = () => {
+    webSocketService.setConfirmationCallback((request: ConfirmationRequest) => {
+      console.log("📱 Received confirmation request:", request);
+      setPendingConfirmation(request);
+      setConfirmationModalVisible(true);
+    });
+  };
 
   // Set up real-time location updates every 5 seconds
   useEffect(() => {
@@ -239,6 +256,27 @@ export default function HomeScreen() {
     }
   };
 
+  const handleConfirmationConfirm = (transactionId: string) => {
+    console.log("📱 User confirmed transaction:", transactionId);
+    webSocketService.sendConfirmationResponse(transactionId, true);
+    setConfirmationModalVisible(false);
+    setPendingConfirmation(null);
+    Alert.alert("Confirmed", "Transaction has been approved!");
+  };
+
+  const handleConfirmationDeny = (transactionId: string) => {
+    console.log("📱 User denied transaction:", transactionId);
+    webSocketService.sendConfirmationResponse(transactionId, false);
+    setConfirmationModalVisible(false);
+    setPendingConfirmation(null);
+    Alert.alert("Denied", "Transaction has been denied.");
+  };
+
+  const handleConfirmationClose = () => {
+    setConfirmationModalVisible(false);
+    setPendingConfirmation(null);
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#ffffff", dark: "#FFFFFF" }}
@@ -375,6 +413,14 @@ export default function HomeScreen() {
           <Text style={styles.buttonText}>Reset Device</Text>
         </TouchableOpacity>
       )}
+
+      <TransactionConfirmationModal
+        visible={confirmationModalVisible}
+        transactionData={pendingConfirmation}
+        onConfirm={handleConfirmationConfirm}
+        onDeny={handleConfirmationDeny}
+        onClose={handleConfirmationClose}
+      />
     </ParallaxScrollView>
   );
 }

@@ -301,16 +301,82 @@ def handle_location_proof_response(data):
         pending_transactions[transaction_id]['status'] = 'completed'
         pending_transactions[transaction_id]['result'] = verification_result
         
-        # Send result to POS
-        socketio.emit('transaction_result', {
-            'transaction_id': transaction_id,
-            'result': verification_result
-        }, room=f"pos_{transaction_id}")
-        
-        print(f"Location proof processed for transaction: {transaction_id}")
+        # Handle different result types
+        if verification_result['result'] == 'CONFIRM_REQUIRED':
+            # Send confirmation request to mobile app
+            socketio.emit('confirmation_request', {
+                'transaction_id': transaction_id,
+                'amount': pending_tx.get('amount', 0),
+                'merchant_name': pending_tx.get('merchant_name', 'Unknown'),
+                'distance_meters': verification_result.get('distance_meters', 0),
+                'reason': verification_result.get('reason', 'Location verification required')
+            }, room=f"card_{card_token}")
+            
+            # Store as pending confirmation
+            pending_transactions[transaction_id]['status'] = 'pending_confirmation'
+            print(f"Confirmation requested for transaction: {transaction_id}")
+        else:
+            # Send result to POS
+            socketio.emit('transaction_result', {
+                'transaction_id': transaction_id,
+                'result': verification_result
+            }, room=f"pos_{transaction_id}")
+            
+            print(f"Location proof processed for transaction: {transaction_id}")
         
     except Exception as e:
         emit('error', {'message': f'Processing error: {str(e)}'})
+
+@socketio.on('confirmation_response')
+def handle_confirmation_response(data):
+    """Handle confirmation response from mobile device"""
+    try:
+        transaction_id = data.get('transaction_id')
+        confirmed = data.get('confirmed')
+        
+        if not transaction_id:
+            emit('error', {'message': 'Missing transaction ID'})
+            return
+        
+        # Get pending transaction
+        if transaction_id not in pending_transactions:
+            emit('error', {'message': 'Transaction not found'})
+            return
+        
+        pending_tx = pending_transactions[transaction_id]
+        
+        # Update transaction based on confirmation
+        if confirmed:
+            # User confirmed - approve transaction
+            result = {
+                'success': True,
+                'result': 'ACCEPT',
+                'reason': 'User confirmed transaction',
+                'distance_meters': pending_tx.get('result', {}).get('distance_meters', 0)
+            }
+        else:
+            # User denied - reject transaction
+            result = {
+                'success': True,
+                'result': 'DENY',
+                'reason': 'User denied transaction',
+                'distance_meters': pending_tx.get('result', {}).get('distance_meters', 0)
+            }
+        
+        # Update transaction status
+        pending_transactions[transaction_id]['status'] = 'completed'
+        pending_transactions[transaction_id]['result'] = result
+        
+        # Send result to POS
+        socketio.emit('transaction_result', {
+            'transaction_id': transaction_id,
+            'result': result
+        }, room=f"pos_{transaction_id}")
+        
+        print(f"Confirmation response processed for transaction: {transaction_id} - {'APPROVED' if confirmed else 'DENIED'}")
+        
+    except Exception as e:
+        emit('error', {'message': f'Confirmation processing error: {str(e)}'})
 
 def verify_location_proof(location_proof, pending_transaction):
     """Verify a location proof from mobile device"""
