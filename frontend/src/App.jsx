@@ -3,11 +3,11 @@ import { io } from "socket.io-client";
 import "./App.css";
 
 const API_URL = "http://3.17.71.163:5000/api/transaction/validate";
-const WS_URL = "http://localhost:5000";
+const WS_URL = "http://3.17.71.163:5000";
 
 function App() {
   const [formData, setFormData] = useState({
-    cardNumber: "4532-1234-5678-9012",
+    cardNumber: "4532123456789012",
     merchantName: "Harvard Square Coffee",
     amount: "25.00",
     latitude: "42.3770",
@@ -19,6 +19,8 @@ function App() {
   const [locationError, setLocationError] = useState(false);
   const [socket, setSocket] = useState(null);
   const [currentTransactionId, setCurrentTransactionId] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationSuccess, setLocationSuccess] = useState(false);
 
   useEffect(() => {
     // Initialize WebSocket connection
@@ -96,6 +98,10 @@ function App() {
       return;
     }
 
+    // Show loading state
+    setLocationLoading(true);
+    setLocationSuccess(false);
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const lat = position.coords.latitude;
@@ -106,6 +112,15 @@ function App() {
           latitude: lat.toFixed(8),
           longitude: lon.toFixed(8),
         }));
+
+        // Show success state
+        setLocationLoading(false);
+        setLocationSuccess(true);
+
+        // Reset to original state after 2 seconds (matching HTML version)
+        setTimeout(() => {
+          setLocationSuccess(false);
+        }, 2000);
       },
       (error) => {
         let errorMsg = "Unable to get your location";
@@ -124,6 +139,8 @@ function App() {
         }
 
         alert(errorMsg);
+        setLocationLoading(false);
+        setLocationSuccess(false);
       },
       {
         enableHighAccuracy: true,
@@ -136,23 +153,10 @@ function App() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    // Format credit card number with spaces
-    if (name === "cardNumber") {
-      const formatted = value
-        .replace(/\s/g, "")
-        .replace(/(.{4})/g, "$1 ")
-        .trim()
-        .substring(0, 19); // Max length: 4444 4444 4444 4444
-      setFormData((prev) => ({
-        ...prev,
-        [name]: formatted,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -299,8 +303,23 @@ function App() {
               type="button"
               className="preset-btn use-location-btn"
               onClick={useMyLocation}
+              disabled={locationLoading || locationSuccess}
+              style={{
+                background: locationLoading
+                  ? "#ccc"
+                  : locationSuccess
+                  ? "#28a745"
+                  : "#efc90a",
+                color: "#333333",
+                borderColor: locationSuccess ? "#28a745" : "#efc90a",
+                fontWeight: "600",
+              }}
             >
-              📍 Use My Location
+              {locationLoading
+                ? "📍 Getting location..."
+                : locationSuccess
+                ? "✓ Location Set"
+                : "📍 Use My Location"}
             </button>
           </div>
         </div>
