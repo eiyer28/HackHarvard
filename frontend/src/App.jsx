@@ -133,10 +133,24 @@ function App() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+
+    // Format credit card number with spaces
+    if (name === 'cardNumber') {
+      const formatted = value
+        .replace(/\s/g, '')
+        .replace(/(.{4})/g, '$1 ')
+        .trim()
+        .substring(0, 19); // Max length: 4444 4444 4444 4444
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -188,12 +202,23 @@ function App() {
 
   return (
     <div className="container">
-      <h1>ProxyPay Transaction Simulator</h1>
+      <div className="demo-badge">DEMO MODE</div>
+      <div className="header-section">
+        <img src="/assets/proxypaylogo.png" alt="ProxyPay Logo" className="logo" />
+        <h1>ProxyPay Transaction Simulator</h1>
+      </div>
       <p className="subtitle">Test location-based transaction validation</p>
+
+      {socket && (
+        <div className="connection-status">
+          <span className="status-dot"></span>
+          Connected to server
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="cardNumber">Credit Card Number</label>
+          <label htmlFor="cardNumber">💳 Credit Card Number</label>
           <input
             type="text"
             id="cardNumber"
@@ -205,7 +230,7 @@ function App() {
         </div>
 
         <div className="form-group">
-          <label htmlFor="merchantName">Merchant Name</label>
+          <label htmlFor="merchantName">🏪 Merchant Name</label>
           <input
             type="text"
             id="merchantName"
@@ -217,7 +242,7 @@ function App() {
         </div>
 
         <div className="form-group">
-          <label htmlFor="amount">Transaction Amount ($)</label>
+          <label htmlFor="amount">💵 Transaction Amount</label>
           <input
             type="number"
             id="amount"
@@ -230,7 +255,7 @@ function App() {
         </div>
 
         <div className="form-group">
-          <label>Transaction Location</label>
+          <label>📍 Transaction Location</label>
           <div className="preset-buttons">
             <button
               type="button"
@@ -339,6 +364,13 @@ function App() {
           </div>
         </div>
       )}
+
+      <div className="footer">
+        <p>Built for HackHarvard 2025 • Securing transactions through location intelligence</p>
+        {currentTransactionId && (
+          <p className="transaction-id">Transaction ID: <code>{currentTransactionId}</code></p>
+        )}
+      </div>
     </div>
   );
 }
