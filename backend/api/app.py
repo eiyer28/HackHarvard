@@ -25,6 +25,7 @@ app = Flask(__name__)
 # Configure CORS to allow your Vercel domain
 CORS(app, 
      origins=[
+         "https://hack-harvard-61u4-git-master-eashan-iyers-projects.vercel.app",
          "https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app",
          "http://localhost:3000",  # For local development
          "http://localhost:5173",  # For Vite dev server
