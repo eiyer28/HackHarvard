@@ -37,26 +37,17 @@ CORS(app,
 )
 
 socketio = SocketIO(app, 
-    cors_allowed_origins=[
-        "https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173"
-    ],
-    cors_credentials=True,
+    cors_allowed_origins="*",  # Allow all origins for now to fix the 400 errors
+    cors_credentials=False,    # Disable credentials to avoid conflicts
     allow_upgrades=True,
-    transports=['polling', 'websocket']
+    transports=['polling', 'websocket'],
+    ping_timeout=60,
+    ping_interval=25,
+    logger=True,
+    engineio_logger=True
 )
 
-# Add explicit CORS handling for Socket.IO
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'https://hack-harvard-61u4-fnpix0h12-eashan-iyers-projects.vercel.app')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+# Socket.IO will handle its own CORS
 
 # Configure Swagger UI
 swagger_config = {
@@ -204,11 +195,15 @@ def verify_signature(data, signature, private_key):
 @socketio.on('connect')
 def handle_connect():
     """Handle WebSocket connection"""
-    print(f"\n=== WEBSOCKET CONNECTION DEBUG ===")
-    print(f"✅ Client connected: {request.sid}")
-    print(f"Current active connections: {list(active_connections.keys())}")
-    print(f"=== END CONNECTION DEBUG ===\n")
-    emit('connected', {'message': 'Connected to ProxyPay server'})
+    try:
+        print(f"\n=== WEBSOCKET CONNECTION DEBUG ===")
+        print(f"✅ Client connected: {request.sid}")
+        print(f"Current active connections: {list(active_connections.keys())}")
+        print(f"=== END CONNECTION DEBUG ===\n")
+        emit('connected', {'message': 'Connected to ProxyPay server'})
+    except Exception as e:
+        print(f"Error in connect handler: {e}")
+        emit('error', {'message': 'Connection error'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
