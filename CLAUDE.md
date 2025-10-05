@@ -24,10 +24,11 @@ Some kind of geospatial processing
 
 Twilio API for two factor authentication for transactions over a certain large amount of cost.
 
-General color theme:
+color background:
 Blue: #005CB4
 Yellow: #EFC90A
 lets do beige bg:
 #FAF3E0
-Charcoal accent color used sparingly:
- #333333
+
+Accent
+#333333

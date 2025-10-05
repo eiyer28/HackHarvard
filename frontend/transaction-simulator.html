@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ProxyPay - Transaction Simulator</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -20,15 +20,25 @@
             align-items: center;
             padding: 20px;
         }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: #FAF3E0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            width: 100%;
-            padding: 40px;
-        }
+      .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 100%;
+        padding: 40px;
+      }
 
         .logo {
             text-align: center;
@@ -46,6 +56,11 @@
             font-size: 28px;
             text-align: center;
         }
+      h1 {
+        color: #005CB4;
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
 
         .subtitle {
             color: #333333;
@@ -133,45 +148,56 @@
         .demo-form.active {
             display: block;
         }
+      .subtitle {
+        color: #333333;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+      .form-group {
+        margin-bottom: 20px;
+      }
 
-        label {
-            display: block;
-            color: #333333;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
+      label {
+        display: block;
+        color: #333333333;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
 
-        input, select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
+      input,
+      select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+      }
 
         input:focus, select:focus {
             outline: none;
             border-color: #005CB4;
         }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #005CB4;
+      }
 
-        .location-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
+      .location-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
 
-        .preset-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
+      .preset-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
 
         .location-button-container {
             text-align: center;
@@ -203,21 +229,26 @@
             transform: none;
         }
 
-        .preset-btn {
-            padding: 10px;
-            background: #f5f5f5;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
+      .preset-btn {
+        padding: 10px;
+        background: #f5f5f5;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+      }
 
         .preset-btn:hover {
             background: #005CB4;
             color: white;
             border-color: #005CB4;
         }
+      .preset-btn:hover {
+        background: #005CB4;
+        color: white;
+        border-color: #005CB4;
+      }
 
         .submit-btn {
             width: 100%;
@@ -236,26 +267,79 @@
         .submit-btn:hover {
             background: #004494;
         }
+      .submit-btn {
+        width: 100%;
+        padding: 16px;
+        background: #005CB4;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 10px;
+      }
 
-        .submit-btn:hover {
-            transform: translateY(-2px);
-        }
+      .submit-btn:hover {
+        transform: translateY(-2px);
+        background: #004494;
+      }
 
-        .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+      .submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
 
         .result {
             display: none; /* Hidden - using modal instead */
         }
+      .result {
+        margin-top: 30px;
+        padding: 20px;
+        border-radius: 12px;
+        display: none;
+      }
+
+      .result.approved {
+        background: #d4edda;
+        border: 2px solid #28a745;
+      }
+
+      .result.denied {
+        background: #f8d7da;
+        border: 2px solid #dc3545;
+      }
+
+      .result-header {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 15px;
+      }
+
+      .result.approved .result-header {
+        color: #28a745;
+      }
+
+      .result.denied .result-header {
+        color: #dc3545;
+      }
+
+      .result-details {
+        font-size: 14px;
+        color: #333;
+        line-height: 1.8;
+      }
 
         .result-detail-item {
             margin: 12px 0;
             font-size: 15px;
             color: #333333;
         }
+      .result-detail-item {
+        margin: 8px 0;
+      }
 
         .result-detail-label {
             font-weight: 600;
@@ -263,12 +347,16 @@
             display: inline-block;
             min-width: 140px;
         }
+      .result-detail-label {
+        font-weight: 600;
+        color: #555;
+      }
 
-        .loading {
-            text-align: center;
-            padding: 20px;
-            display: none;
-        }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        display: none;
+      }
 
         .spinner {
             border: 4px solid #FAF3E0;
@@ -279,11 +367,24 @@
             animation: spin 1s linear infinite;
             margin: 0 auto;
         }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #005CB4;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
 
         .error {
             color: #dc3545;
@@ -476,47 +577,18 @@
             background: #004494;
             transform: translateY(-2px);
         }
+      .error {
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 5px;
+        display: none;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="logo">
-            <img src="../assets/proxypaylogo.png" alt="ProxyPay Logo">
-        </div>
-
-        <!-- Landing Page -->
-        <div class="landing-page" id="landingPage">
-            <div class="landing-hero">
-                <h1 class="landing-title">ProxyPay Transaction Security</h1>
-                <p class="landing-subtitle">Location-based fraud prevention for your transactions</p>
-            </div>
-
-            <div class="landing-features">
-                <div class="feature-item">
-                    <span class="feature-icon">🔒</span>
-                    <span class="feature-text"><strong>Secure Validation:</strong> Verify transactions using real-time location matching</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📍</span>
-                    <span class="feature-text"><strong>Geospatial Protection:</strong> Automatically deny fraudulent transactions from different locations</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📱</span>
-                    <span class="feature-text"><strong>2FA for High-Value:</strong> SMS verification for transactions over $100</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">⚡</span>
-                    <span class="feature-text"><strong>Instant Results:</strong> Real-time validation with minimal UX friction</span>
-                </div>
-            </div>
-
-            <button class="start-demo-btn" onclick="startDemo()">Start Demo</button>
-        </div>
-
-        <!-- Demo Form -->
-        <div class="demo-form" id="demoForm">
-            <h1>Transaction Simulator</h1>
-            <p class="subtitle">Test location-based transaction validation</p>
+      <h1>ProxyPay Transaction Simulator</h1>
+      <p class="subtitle">Test location-based transaction validation</p>
 
             <form id="transactionForm">
             <div class="form-group">
@@ -526,16 +598,37 @@
                     <option value="5412-9876-5432-1098">5412-9876-5432-1098 (San Francisco)</option>
                 </select>
             </div>
+      <form id="transactionForm">
+        <div class="form-group">
+          <label for="cardNumber">Credit Card Number</label>
+          <input
+            type="text"
+            id="cardNumber"
+            placeholder="Enter any credit card number"
+            value="4532-1234-5678-9012"
+          />
+        </div>
 
-            <div class="form-group">
-                <label for="merchantName">Merchant Name</label>
-                <input type="text" id="merchantName" placeholder="e.g., Coffee Shop" value="Harvard Square Coffee">
-            </div>
+        <div class="form-group">
+          <label for="merchantName">Merchant Name</label>
+          <input
+            type="text"
+            id="merchantName"
+            placeholder="e.g., Coffee Shop"
+            value="Harvard Square Coffee"
+          />
+        </div>
 
-            <div class="form-group">
-                <label for="amount">Transaction Amount ($)</label>
-                <input type="number" id="amount" placeholder="0.00" step="0.01" value="25.00">
-            </div>
+        <div class="form-group">
+          <label for="amount">Transaction Amount ($)</label>
+          <input
+            type="number"
+            id="amount"
+            placeholder="0.00"
+            step="0.01"
+            value="25.00"
+          />
+        </div>
 
             <div class="form-group">
                 <label>Transaction Location</label>
@@ -549,28 +642,85 @@
                     <button type="button" class="use-location-btn" onclick="useMyLocation()">📍 Use My Location</button>
                 </div>
             </div>
-
-            <div class="form-group">
-                <div class="location-grid">
-                    <div>
-                        <label for="latitude">Latitude</label>
-                        <input type="number" id="latitude" placeholder="42.3770" step="any" value="42.3770">
-                    </div>
-                    <div>
-                        <label for="longitude">Longitude</label>
-                        <input type="number" id="longitude" placeholder="-71.1167" step="any" value="-71.1167">
-                    </div>
-                </div>
-                <div class="error" id="locationError">Please enter valid coordinates</div>
-            </div>
-
-            <button type="submit" class="submit-btn" id="submitBtn">Validate Transaction</button>
-        </form>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 10px; color: #666;">Processing transaction...</p>
+        <div class="form-group">
+          <label>Transaction Location</label>
+          <div class="preset-buttons">
+            <button
+              type="button"
+              class="preset-btn"
+              onclick="setLocation(42.3770, -71.1167, 'Harvard Campus')"
+            >
+              Harvard Campus
+            </button>
+            <button
+              type="button"
+              class="preset-btn"
+              onclick="setLocation(42.3736, -71.1097, 'MIT')"
+            >
+              MIT Campus
+            </button>
+            <button
+              type="button"
+              class="preset-btn"
+              onclick="setLocation(40.7128, -74.0060, 'NYC')"
+            >
+              New York City
+            </button>
+            <button
+              type="button"
+              class="preset-btn"
+              onclick="setLocation(37.7749, -122.4194, 'SF')"
+            >
+              San Francisco
+            </button>
+            <button
+              type="button"
+              class="preset-btn"
+              onclick="useMyLocation()"
+              style="background: #EFC90A; color: #333333; border-color: #EFC90A; font-weight: 600"
+            >
+              📍 Use My Location
+            </button>
+          </div>
         </div>
+
+        <div class="form-group">
+          <div class="location-grid">
+            <div>
+              <label for="latitude">Latitude</label>
+              <input
+                type="number"
+                id="latitude"
+                placeholder="42.3770"
+                step="any"
+                value="42.3770"
+              />
+            </div>
+            <div>
+              <label for="longitude">Longitude</label>
+              <input
+                type="number"
+                id="longitude"
+                placeholder="-71.1167"
+                step="any"
+                value="-71.1167"
+              />
+            </div>
+          </div>
+          <div class="error" id="locationError">
+            Please enter valid coordinates
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Validate Transaction
+        </button>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p style="margin-top: 10px; color: #666">Processing transaction...</p>
+      </div>
 
         <div class="result" id="result">
             <div class="result-header" id="resultHeader"></div>
@@ -615,8 +765,13 @@
             </div>
             <button class="close-result-btn" onclick="closeResultModal()">Close</button>
         </div>
+      <div class="result" id="result">
+        <div class="result-header" id="resultHeader"></div>
+        <div class="result-details" id="resultDetails"></div>
+      </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script>
         const API_URL = 'http://localhost:5000/api/transaction/validate';
         const VERIFY_URL = 'http://localhost:5000/api/transaction/verify-2fa';
@@ -733,131 +888,211 @@
             // Show the modal
             document.getElementById('resultModal').classList.add('active');
         }
+      const API_URL = "http://localhost:5000/api/transaction/validate";
+      const WS_URL = "http://localhost:5000";
 
-        function useMyLocation() {
-            const btn = event.target;
-            const originalText = btn.textContent;
+      // Initialize WebSocket connection
+      const socket = io(WS_URL);
+      let currentTransactionId = null;
 
-            if (!navigator.geolocation) {
-                alert('Geolocation is not supported by your browser');
-                return;
-            }
+      // WebSocket event handlers
+      socket.on("connect", function () {
+        console.log("Connected to ProxyPay server");
+      });
 
-            // Show loading state
-            btn.textContent = '📍 Getting location...';
-            btn.disabled = true;
+      socket.on("transaction_result", function (data) {
+        console.log("Transaction result received:", data);
+        handleTransactionResult(data);
+      });
 
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
+      socket.on("error", function (data) {
+        console.error("WebSocket error:", data);
+        showError(data.message);
+      });
 
-                    document.getElementById('latitude').value = lat.toFixed(6);
-                    document.getElementById('longitude').value = lon.toFixed(6);
+      function handleTransactionResult(data) {
+        const result = data.result;
+        const resultDiv = document.getElementById("result");
+        const resultHeader = document.getElementById("resultHeader");
+        const resultDetails = document.getElementById("resultDetails");
 
-                    // Reset button
-                    btn.textContent = '✓ Location Set';
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                    }, 2000);
-                },
-                (error) => {
-                    let errorMsg = 'Unable to get your location';
+        // Hide loading
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("submitBtn").disabled = false;
 
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMsg = 'Location permission denied. Please enable location access in your browser.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMsg = 'Location information unavailable.';
-                            break;
-                        case error.TIMEOUT:
-                            errorMsg = 'Location request timed out.';
-                            break;
-                    }
+        if (result.success) {
+          if (result.result === "ACCEPT") {
+            resultDiv.className = "result approved";
+            resultHeader.textContent = "✓ Transaction Approved";
+          } else if (result.result === "CONFIRM_REQUIRED") {
+            resultDiv.className = "result denied";
+            resultHeader.textContent = "⚠️ Manual Confirmation Required";
+          } else {
+            resultDiv.className = "result denied";
+            resultHeader.textContent = "✗ Transaction Denied";
+          }
 
-                    alert(errorMsg);
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
+          resultDetails.innerHTML = `
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Result:</span> ${result.result}
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Reason:</span> ${result.reason}
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Distance:</span> ${result.distance_meters}m
+                    </div>
+                `;
+        } else {
+          resultDiv.className = "result denied";
+          resultHeader.textContent = "✗ Transaction Failed";
+          resultDetails.innerHTML = `
+                    <div class="result-detail-item">
+                        <span class="result-detail-label">Error:</span> ${result.reason}
+                    </div>
+                `;
         }
 
-        document.getElementById('transactionForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        resultDiv.style.display = "block";
+      }
 
-            const cardNumber = document.getElementById('cardNumber').value;
-            const merchantName = document.getElementById('merchantName').value;
-            const amount = parseFloat(document.getElementById('amount').value);
-            const latitude = parseFloat(document.getElementById('latitude').value);
-            const longitude = parseFloat(document.getElementById('longitude').value);
+      function showError(message) {
+        const resultDiv = document.getElementById("result");
+        resultDiv.className = "result denied";
+        document.getElementById("resultHeader").textContent = "Error";
+        document.getElementById("resultDetails").textContent = message;
+        resultDiv.style.display = "block";
 
-            // Validate inputs
-            if (isNaN(latitude) || isNaN(longitude)) {
-                document.getElementById('locationError').style.display = 'block';
-                return;
+        // Hide loading
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("submitBtn").disabled = false;
+      }
+
+      function setLocation(lat, lon, name) {
+        document.getElementById("latitude").value = lat;
+        document.getElementById("longitude").value = lon;
+      }
+
+      function useMyLocation() {
+        const btn = event.target;
+        const originalText = btn.textContent;
+
+        if (!navigator.geolocation) {
+          alert("Geolocation is not supported by your browser");
+          return;
+        }
+
+        // Show loading state
+        btn.textContent = "📍 Getting location...";
+        btn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            document.getElementById("latitude").value = lat.toFixed(8);
+            document.getElementById("longitude").value = lon.toFixed(8);
+
+            // Reset button
+            btn.textContent = "✓ Location Set";
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.disabled = false;
+            }, 2000);
+          },
+          (error) => {
+            let errorMsg = "Unable to get your location";
+
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMsg =
+                  "Location permission denied. Please enable location access in your browser.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMsg = "Location information unavailable.";
+                break;
+              case error.TIMEOUT:
+                errorMsg = "Location request timed out.";
+                break;
             }
-            document.getElementById('locationError').style.display = 'none';
 
-            // Show loading
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result').style.display = 'none';
-            document.getElementById('submitBtn').disabled = true;
+            alert(errorMsg);
+            btn.textContent = originalText;
+            btn.disabled = false;
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
+      }
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        card_number: cardNumber,
-                        merchant_name: merchantName,
-                        amount: amount,
-                        transaction_location: {
-                            latitude: latitude,
-                            longitude: longitude
-                        }
-                    })
-                });
+      document
+        .getElementById("transactionForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
 
-                const data = await response.json();
+          const cardNumber = document.getElementById("cardNumber").value;
+          const merchantName = document.getElementById("merchantName").value;
+          const amount = parseFloat(document.getElementById("amount").value);
+          const latitude = parseFloat(
+            document.getElementById("latitude").value
+          );
+          const longitude = parseFloat(
+            document.getElementById("longitude").value
+          );
 
-                // Hide loading
-                document.getElementById('loading').style.display = 'none';
+          // Validate inputs
+          if (isNaN(latitude) || isNaN(longitude)) {
+            document.getElementById("locationError").style.display = "block";
+            return;
+          }
+          document.getElementById("locationError").style.display = "none";
 
-                // Check if 2FA is required
-                if (data.requires_2fa) {
-                    // Store transaction ID and show 2FA modal
-                    currentTransactionId = data.transaction_id;
-                    document.getElementById('modalInfo').textContent = data.message || 'A verification code has been sent to your phone.';
-                    document.getElementById('twoFAModal').classList.add('active');
-                    document.getElementById('verificationCode').focus();
-                } else {
-                    // Show regular result
-                    displayResult(data, response.ok);
-                }
+          // Show loading
+          document.getElementById("loading").style.display = "block";
+          document.getElementById("result").style.display = "none";
+          document.getElementById("submitBtn").disabled = true;
 
-            } catch (error) {
-                // Hide loading
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('submitBtn').disabled = false;
+          try {
+            // Generate unique transaction ID and nonce
+            currentTransactionId =
+              "tx_" +
+              Date.now() +
+              "_" +
+              Math.random().toString(36).substring(2);
+            const transactionNonce =
+              "nonce_" + Math.random().toString(36).substring(2);
 
-                // Show error
-                const resultDiv = document.getElementById('result');
-                resultDiv.className = 'result denied';
-                document.getElementById('resultHeader').textContent = 'Error';
-                document.getElementById('resultDetails').textContent =
-                    'Failed to connect to API. Make sure the backend is running on http://localhost:5000';
-                resultDiv.style.display = 'block';
-            }
+            // Join room for this transaction
+            socket.emit("join_room", { room: `pos_${currentTransactionId}` });
+
+            // Request location proof from phone
+            socket.emit("request_location_proof", {
+              card_token: cardNumber,
+              transaction_id: currentTransactionId,
+              transaction_nonce: transactionNonce,
+              pos_location: {
+                lat: parseFloat(latitude.toFixed(8)),
+                lon: parseFloat(longitude.toFixed(8)),
+              },
+              amount: amount,
+              merchant_name: merchantName,
+            });
+
+            console.log(
+              "Location proof requested for transaction:",
+              currentTransactionId
+            );
+          } catch (error) {
+            console.error("Transaction error:", error);
+            showError(
+              "Failed to request location proof. Make sure the backend is running on http://localhost:5000"
+            );
+          }
         });
     </script>
-</body>
+  </body>
 </html>

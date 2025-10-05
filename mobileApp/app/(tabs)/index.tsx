@@ -1,19 +1,189 @@
+import { useState, useEffect } from "react";
 import { Image } from "expo-image";
-import { Platform, StyleSheet } from "react-native";
-
-import { HelloWave } from "@/components/hello-wave";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  TextInput,
+  Platform,
+} from "react-native";
+import { CryptoService } from "../../src/services/CryptoService";
+import { AttestationService } from "../../src/services/AttestationService";
+import { LocationProofService } from "../../src/services/LocationProofService";
+import { webSocketService } from "../../src/services/WebSocketService";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useNavigation } from "@react-navigation/native";
-import { Link } from "expo-router";
 
 export default function HomeScreen() {
-  const navigation = useNavigation();
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [cardToken, setCardToken] = useState("4532-1234-5678-9012");
+  const [publicKey, setPublicKey] = useState("");
+  const [location, setLocation] = useState<{ lat: number; lon: number } | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [locationUpdateCount, setLocationUpdateCount] = useState(0);
+
+  useEffect(() => {
+    checkRegistration();
+    getCurrentLocation();
+    connectWebSocket();
+  }, []);
+
+  // Set up real-time location updates every 5 seconds
+  useEffect(() => {
+    const locationInterval = setInterval(() => {
+      getCurrentLocation();
+    }, 5000);
+
+    return () => clearInterval(locationInterval);
+  }, []);
+
+  const connectWebSocket = async () => {
+    try {
+      await webSocketService.connect();
+      setIsWebSocketConnected(true);
+      console.log("🔌 WebSocket connected");
+    } catch (error) {
+      console.error("❌ WebSocket connection failed:", error);
+      setIsWebSocketConnected(false);
+    }
+  };
+
+  const checkRegistration = async () => {
+    try {
+      // Test SecureStore availability first
+      const isSecureStoreWorking = await CryptoService.testSecureStore();
+      console.log("🔐 SecureStore test result:", isSecureStoreWorking);
+
+      if (!isSecureStoreWorking) {
+        console.warn("⚠️ SecureStore not working properly on this platform");
+        Alert.alert(
+          "Storage Issue",
+          "Secure storage is not available. This may affect key persistence on iOS."
+        );
+      }
+
+      const key = await CryptoService.getPublicKey();
+      setPublicKey(key);
+      setIsRegistered(true);
+    } catch (error) {
+      console.log("Device not registered yet:", error);
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      const hasPermission =
+        await LocationProofService.requestLocationPermission();
+      if (hasPermission) {
+        const location = await LocationProofService.isLocationAvailable();
+        if (location) {
+          // Get current location for display
+          const { status } = await import("expo-location").then((Location) =>
+            Location.getForegroundPermissionsAsync()
+          );
+          if (status === "granted") {
+            const { getCurrentPositionAsync, Accuracy } = await import(
+              "expo-location"
+            );
+            const pos = await getCurrentPositionAsync({
+              accuracy: Accuracy.High, // High accuracy but faster than BestForNavigation
+              maximumAge: 3000, // 3 seconds - fresh but not too restrictive
+              timeout: 8000, // 8 seconds - reasonable timeout
+            } as any);
+            setLocation({
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+            });
+            setLocationUpdateCount((prev) => prev + 1);
+            console.log(
+              `📍 Location updated: ${pos.coords.latitude.toFixed(
+                8
+              )}, ${pos.coords.longitude.toFixed(8)} (Update #${
+                locationUpdateCount + 1
+              })`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error getting location:", error);
+      // Fallback to Boston coordinates for demo
+      setLocation({
+        lat: 42.3601, // Boston, MA coordinates
+        lon: -71.0589,
+      });
+      setLocationUpdateCount((prev) => prev + 1);
+      console.log(
+        `📍 Location fallback used (Update #${locationUpdateCount + 1})`
+      );
+    }
+  };
+
+  const registerDevice = async () => {
+    setIsLoading(true);
+    try {
+      console.log("🔐 Registering device...");
+
+      // Get or create device keypair
+      const keyPair = await CryptoService.getOrCreateKeyPair();
+      console.log("✅ Device keypair generated");
+
+      // Generate device attestation
+      const attestation = await AttestationService.generateAttestation();
+      console.log("✅ Device attestation generated");
+
+      // Register with backend
+      const response = await fetch(
+        "http://localhost:5000/api/register-device",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            card_token: cardToken,
+            public_key: keyPair.publicKey,
+            attestation: attestation.attestation_token,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        console.log("✅ Device registered successfully");
+        setPublicKey(keyPair.publicKey);
+        setIsRegistered(true);
+
+        // Register with WebSocket
+        if (isWebSocketConnected) {
+          webSocketService.registerPhone(cardToken);
+          console.log("📱 Phone registered with WebSocket");
+        }
+
+        Alert.alert("Success", "Device registered successfully!");
+      } else {
+        console.error("❌ Device registration failed");
+        Alert.alert("Error", "Device registration failed");
+      }
+    } catch (error) {
+      console.error("❌ Registration error:", error);
+      Alert.alert(
+        "Error",
+        "Registration failed: " +
+          (error instanceof Error ? error.message : String(error))
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: "white", dark: "white" }}
+      headerBackgroundColor={{ light: "#ffffff", dark: "#FFFFFF" }}
       headerImage={
         <Image
           source={require("@/assets/images/logo.jpeg")}
@@ -21,76 +191,218 @@ export default function HomeScreen() {
         />
       }
     >
-      <ThemedText style={styles.title} type="title">
-        Welcome!
-      </ThemedText>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Device Status</Text>
+        <Text style={styles.statusText}>
+          {isRegistered ? "✅ Registered" : "❌ Not Registered"}
+        </Text>
+        <Text style={styles.statusText}>
+          WebSocket: {isWebSocketConnected ? "✅ Connected" : "❌ Disconnected"}
+        </Text>
+        {publicKey && (
+          <Text style={styles.keyText}>
+            Public Key: {publicKey.substring(0, 20)}...
+          </Text>
+        )}
+      </View>
 
-      {/* Buttons grid: each button navigates to a route/tab */}
-      <ThemedView style={styles.buttonsGrid}>
-        <Link href="/wallet" asChild>
-          <ThemedView style={styles.button} accessibilityRole="button">
-            <ThemedText type="subtitle">Wallet</ThemedText>
-          </ThemedView>
-        </Link>
-        <Link href="/transactions" asChild>
-          <ThemedView style={styles.button} accessibilityRole="button">
-            <ThemedText type="subtitle">Past Transactions</ThemedText>
-          </ThemedView>
-        </Link>
-        <Link href="/users" asChild>
-          <ThemedView style={styles.button} accessibilityRole="button">
-            <ThemedText type="subtitle">Authorized Users</ThemedText>
-          </ThemedView>
-        </Link>
-        <ThemedText type="subtitle" style={styles.moreSoon}>
-          And more features coming soon!
-        </ThemedText>
-        {/* Add more buttons/routes as needed */}
-      </ThemedView>
+      <View style={styles.card}>
+        <View style={styles.locationHeader}>
+          <Text style={styles.cardTitle}>Location (Live Updates)</Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={getCurrentLocation}
+          >
+            <Text style={styles.refreshButtonText}>🔄</Text>
+          </TouchableOpacity>
+        </View>
+        {location ? (
+          <>
+            <Text style={styles.locationText}>
+              📍 {location.lat.toFixed(8)}, {location.lon.toFixed(8)}
+            </Text>
+            <Text style={styles.updateInfo}>
+              Updates every 5 seconds • Count: {locationUpdateCount}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.locationText}>📍 Location not available</Text>
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Card Token</Text>
+        <TextInput
+          style={styles.input}
+          value={cardToken}
+          onChangeText={setCardToken}
+          placeholder="Enter card token"
+        />
+      </View>
+
+      <TouchableOpacity
+        style={[styles.button, isRegistered && styles.buttonSecondary]}
+        onPress={registerDevice}
+        disabled={isLoading}
+      >
+        <Text style={styles.buttonText}>
+          {isLoading ? "Loading..." : "Register Device"}
+        </Text>
+      </TouchableOpacity>
+
+      {!isWebSocketConnected && (
+        <TouchableOpacity
+          style={[styles.button, styles.buttonWarning]}
+          onPress={connectWebSocket}
+        >
+          <Text style={styles.buttonText}>Reconnect WebSocket</Text>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity
+        style={[styles.button, styles.buttonSecondary]}
+        onPress={async () => {
+          try {
+            const isWorking = await CryptoService.testSecureStore();
+            Alert.alert(
+              "Storage Test",
+              `SecureStore is ${isWorking ? "working" : "not working"} on ${
+                Platform.OS
+              }`
+            );
+          } catch (error) {
+            Alert.alert("Storage Test Failed", String(error));
+          }
+        }}
+      >
+        <Text style={styles.buttonText}>Test Storage</Text>
+      </TouchableOpacity>
+
+      {isRegistered && (
+        <TouchableOpacity
+          style={[styles.button, styles.buttonDanger]}
+          onPress={async () => {
+            await CryptoService.clearKeys();
+            setIsRegistered(false);
+            setPublicKey("");
+            Alert.alert("Success", "Device keys cleared");
+          }}
+        >
+          <Text style={styles.buttonText}>Reset Device</Text>
+        </TouchableOpacity>
+      )}
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    padding: 17, // 15% smaller (20 -> 17)
+  },
+  header: {
     alignItems: "center",
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  logo: {
-    height: 100,
-    width: 290,
-    alignSelf: "center",
-    marginTop: 50,
+    marginBottom: 26, // 15% smaller (30 -> 25.5 -> 26)
   },
   title: {
-    textAlign: "center",
-    marginBottom: 12,
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 4, // 15% smaller (5 -> 4.25 -> 4)
   },
-  buttonsGrid: {
-    flexDirection: "column",
-    justifyContent: "flex-start",
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 10, // 15% smaller (12 -> 10.2 -> 10)
+    padding: 17, // 15% smaller (20 -> 17)
+    marginBottom: 17, // 15% smaller (20 -> 17)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 9, // 15% smaller (10 -> 8.5 -> 9)
+  },
+  statusText: {
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 4, // 15% smaller (5 -> 4.25 -> 4)
+  },
+  keyText: {
+    fontSize: 12,
+    color: "#666",
+    fontFamily: "monospace",
+  },
+  locationText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  updateInfo: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 3, // 15% smaller (4 -> 3.4 -> 3)
+  },
+  locationHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    width: "100%",
-    marginBottom: 16,
+    marginBottom: 9, // 15% smaller (10 -> 8.5 -> 9)
+  },
+  refreshButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 17, // 15% smaller (20 -> 17)
+    width: 34, // 15% smaller (40 -> 34)
+    height: 34, // 15% smaller (40 -> 34)
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  refreshButtonText: {
+    fontSize: 18,
+    color: "white",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 7, // 15% smaller (8 -> 6.8 -> 7)
+    padding: 10, // 15% smaller (12 -> 10.2 -> 10)
+    fontSize: 16,
+    backgroundColor: "#f9f9f9",
   },
   button: {
-    width: "90%",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#111111",
+    backgroundColor: "#007AFF",
+    borderRadius: 10, // 15% smaller (12 -> 10.2 -> 10)
+    padding: 14, // 15% smaller (16 -> 13.6 -> 14)
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-    marginVertical: 6,
+    marginBottom: 13, // 15% smaller (15 -> 12.75 -> 13)
   },
-  moreSoon: {
-    marginTop: 20,
+  buttonSecondary: {
+    backgroundColor: "#34C759",
+  },
+  buttonDanger: {
+    backgroundColor: "#FF3B30",
+  },
+  buttonWarning: {
+    backgroundColor: "#FF9500",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  logo: {
+    height: 85, // 15% smaller (100 -> 85)
+    width: 247, // 15% smaller (290 -> 246.5 -> 247)
+    alignSelf: "center",
+    marginTop: 43, // 15% smaller (50 -> 42.5 -> 43)
   },
 });
