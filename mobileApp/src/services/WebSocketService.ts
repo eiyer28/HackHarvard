@@ -22,7 +22,7 @@ class WebSocketService {
   private isConnected = false;
   private cardToken: string | null = null;
 
-  connect(serverUrl: string = "http://localhost:5000"): Promise<void> {
+  connect(serverUrl: string = "http://3.17.71.163:5000"): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         this.socket = io(serverUrl, {

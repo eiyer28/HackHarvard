@@ -83,7 +83,7 @@ export class LocationProofService {
         JSON.stringify(payload, null, 2)
       );
 
-      const response = await fetch("http://localhost:5000/api/prove-location", {
+      const response = await fetch("http://3.17.71.163:5000/api/prove-location", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
