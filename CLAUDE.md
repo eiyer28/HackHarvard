@@ -23,3 +23,12 @@ Database in either mongodb or firebase or sql whichever one is easiest
 Some kind of geospatial processing
 
 Twilio API for two factor authentication for transactions over a certain large amount of cost.
+
+color background:
+Blue: #005CB4
+Yellow: #EFC90A
+lets do beige bg:
+#FAF3E0
+
+Accent
+#333333
