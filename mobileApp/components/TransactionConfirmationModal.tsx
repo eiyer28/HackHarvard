@@ -64,15 +64,22 @@ export default function TransactionConfirmationModal({
   const handleConfirm = async () => {
     if (!transactionData) return;
 
+    console.log("🔐 Starting biometric authentication...");
     setIsAuthenticating(true);
     try {
       const result = await BiometricService.authenticate(
         `Confirm transaction of $${transactionData.amount} at ${transactionData.merchant_name}`
       );
 
+      console.log("🔐 Biometric result:", result);
+
       if (result.success) {
+        console.log(
+          "✅ Biometric authentication successful, confirming transaction"
+        );
         onConfirm(transactionData.transaction_id);
       } else {
+        console.log("❌ Biometric authentication failed:", result.error);
         Alert.alert(
           "Authentication Failed",
           result.error || "Biometric authentication failed. Please try again.",
@@ -80,6 +87,7 @@ export default function TransactionConfirmationModal({
         );
       }
     } catch (error) {
+      console.error("❌ Biometric authentication error:", error);
       Alert.alert(
         "Error",
         "An error occurred during authentication. Please try again.",
@@ -165,6 +173,19 @@ export default function TransactionConfirmationModal({
                 </Text>
               )}
             </TouchableOpacity>
+
+            {biometricAvailable && (
+              <TouchableOpacity
+                style={[styles.button, styles.skipButton]}
+                onPress={() => {
+                  console.log("⏭️ Skipping biometric authentication");
+                  onConfirm(transactionData.transaction_id);
+                }}
+                disabled={isAuthenticating}
+              >
+                <Text style={styles.skipButtonText}>Skip & Confirm</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -282,6 +303,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#34C759",
   },
   confirmButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  skipButton: {
+    backgroundColor: "#FF9500",
+  },
+  skipButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",

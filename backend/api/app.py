@@ -315,6 +315,33 @@ def handle_location_proof_response(data):
             # Store as pending confirmation
             pending_transactions[transaction_id]['status'] = 'pending_confirmation'
             print(f"Confirmation requested for transaction: {transaction_id}")
+            
+            # Set timeout for confirmation (30 seconds)
+            def timeout_confirmation():
+                import time
+                time.sleep(30)  # Wait 30 seconds
+                if transaction_id in pending_transactions and pending_transactions[transaction_id]['status'] == 'pending_confirmation':
+                    print(f"⏰ Confirmation timeout for transaction: {transaction_id}")
+                    # Auto-deny after timeout
+                    result = {
+                        'success': True,
+                        'result': 'DENY',
+                        'reason': 'Confirmation timeout - user did not respond',
+                        'distance_meters': verification_result.get('distance_meters', 0)
+                    }
+                    pending_transactions[transaction_id]['status'] = 'completed'
+                    pending_transactions[transaction_id]['result'] = result
+                    
+                    socketio.emit('transaction_result', {
+                        'transaction_id': transaction_id,
+                        'result': result
+                    }, room=f"pos_{transaction_id}")
+            
+            # Start timeout in background
+            import threading
+            timeout_thread = threading.Thread(target=timeout_confirmation)
+            timeout_thread.daemon = True
+            timeout_thread.start()
         else:
             # Send result to POS
             socketio.emit('transaction_result', {
