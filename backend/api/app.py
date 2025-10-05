@@ -12,6 +12,7 @@ import uuid
 from dotenv import load_dotenv
 from twilio.rest import Client
 import secrets
+from arm import run_arc_verify
 
 # Load environment variables
 load_dotenv()
@@ -123,7 +124,14 @@ pending_transactions = {}
 # Mock attestation verification (for hackathon)
 def verify_attestation(attestation_token):
     """Verify device attestation token (mock for hackathon)"""
-    return attestation_token and attestation_token.startswith('mock_attestation_')
+
+    result = run_arc_verify(attestation_token)
+    if result.overall_affirming:
+        return True
+    else:
+        return False
+
+    # return attestation_token and attestation_token.startswith('mock_attestation_')
 
 def verify_signature(data, signature, private_key):
     """Verify digital signature (simplified for demo)"""

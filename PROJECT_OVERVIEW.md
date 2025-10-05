@@ -161,7 +161,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-**Backend runs on:** http://localhost:5000
+**Backend runs on:** http://3.17.71.163:5000
 
 ### **Step 2: Open POS Simulator**
 

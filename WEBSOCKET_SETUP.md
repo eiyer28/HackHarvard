@@ -18,7 +18,7 @@ cd backend/api
 python app.py
 ```
 
-The server will start on `http://localhost:5000` with WebSocket support.
+The server will start on `http://3.17.71.163:5000` with WebSocket support.
 
 ### 3. Start the Mobile App
 
