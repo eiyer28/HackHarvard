@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from twilio.rest import Client
 import secrets
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -87,6 +88,9 @@ device_registry = {
 def verify_attestation(attestation_token):
     """Verify device attestation token (mock for hackathon)"""
     return attestation_token and attestation_token.startswith('mock_attestation_')
+    # make a call to an api that will take in the attestation token and return a boolean
+    response = requests.post("http://localhost:5000/api/verify-attestation", json={"attestation_token": attestation_token})
+    return response.json()
 
 def verify_signature(data, signature, public_key):
     """Verify digital signature (simplified for demo)"""
@@ -563,47 +567,16 @@ def prove_location():
     tags:
       - Location Proofs
     parameters:
-      - in: body
-        name: body
+      - in: formData
+        name: proof_data
+        type: string
         required: true
-        schema:
-          type: object
-          required:
-            - card_token
-            - transaction_nonce
-            - transaction_id
-            - location
-            - timestamp
-            - attestation
-            - signature
-          properties:
-            card_token:
-              type: string
-              example: "4532-1234-5678-9012"
-            transaction_nonce:
-              type: string
-              example: "nonce123"
-            transaction_id:
-              type: string
-              example: "tx_001"
-            location:
-              type: object
-              properties:
-                lat:
-                  type: number
-                  example: 42.3770
-                lon:
-                  type: number
-                  example: -71.1167
-            timestamp:
-              type: string
-              example: "2025-10-04T14:12:00Z"
-            attestation:
-              type: string
-              example: "mock_attestation_123"
-            signature:
-              type: string
-              example: "signature_hash"
+        description: JSON string containing proof data
+      - in: formData
+        name: attestation_cbor
+        type: file
+        required: true
+        description: CBOR attestation file
     responses:
       200:
         description: Location proof verification result
@@ -611,8 +584,33 @@ def prove_location():
         description: Invalid proof
     """
     try:
-        data = request.get_json()
-        
+        # Get JSON proof data from form
+        proof_json = request.form.get('proof_data')
+        if not proof_json:
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Missing proof_data'
+            }), 400
+
+        data = json.loads(proof_json)
+
+        # Get CBOR attestation file
+        if 'attestation_cbor' not in request.files:
+            return jsonify({
+                'success': False,
+                'result': 'DENY',
+                'reason': 'Missing attestation_cbor file'
+            }), 400
+
+        attestation_file = request.files['attestation_cbor']
+        attestation_cbor_bytes = attestation_file.read()
+
+        # Log receipt of CBOR file
+        import sys
+        sys.stdout.write(f"Received CBOR attestation file: {len(attestation_cbor_bytes)} bytes\n")
+        sys.stdout.flush()
+
         # Extract proof data
         card_token = data.get('card_token')
         transaction_nonce = data.get('transaction_nonce')
@@ -640,6 +638,7 @@ def prove_location():
             }), 400
 
         # Verify attestation
+        
         if not verify_attestation(attestation):
             return jsonify({
                 'success': False,
