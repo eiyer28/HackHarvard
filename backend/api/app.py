@@ -120,6 +120,12 @@ active_connections = {}
 # Pending transactions waiting for location proofs
 pending_transactions = {}
 
+# Completed transaction history (persistent storage)
+completed_transactions = {}
+
+# Pending 2FA transactions
+pending_2fa_transactions = {}
+
 # Mock attestation verification (for hackathon)
 def verify_attestation(attestation_token):
     """Verify device attestation token (mock for hackathon)"""
@@ -301,16 +307,135 @@ def handle_location_proof_response(data):
         pending_transactions[transaction_id]['status'] = 'completed'
         pending_transactions[transaction_id]['result'] = verification_result
         
-        # Send result to POS
-        socketio.emit('transaction_result', {
-            'transaction_id': transaction_id,
-            'result': verification_result
-        }, room=f"pos_{transaction_id}")
+        # Store completed transaction in history
+        completed_transactions[transaction_id] = {
+            **pending_transactions[transaction_id],
+            'completed_at': datetime.utcnow().isoformat()
+        }
+        
+        # Handle different result types
+        if verification_result['result'] == 'CONFIRM_REQUIRED':
+            # Send confirmation request to mobile app
+            socketio.emit('confirmation_request', {
+                'transaction_id': transaction_id,
+                'amount': pending_tx.get('amount', 0),
+                'merchant_name': pending_tx.get('merchant_name', 'Unknown'),
+                'distance_meters': verification_result.get('distance_meters', 0),
+                'reason': verification_result.get('reason', 'Location verification required')
+            }, room=f"card_{card_token}")
+            
+            # Store as pending confirmation
+            pending_transactions[transaction_id]['status'] = 'pending_confirmation'
+            print(f"Confirmation requested for transaction: {transaction_id}")
+            
+            # Set timeout for confirmation (30 seconds)
+            def timeout_confirmation():
+                import time
+                time.sleep(30)  # Wait 30 seconds
+                if transaction_id in pending_transactions and pending_transactions[transaction_id]['status'] == 'pending_confirmation':
+                    print(f"⏰ Confirmation timeout for transaction: {transaction_id}")
+                    # Auto-deny after timeout
+                    result = {
+                        'success': True,
+                        'result': 'DENY',
+                        'reason': 'Confirmation timeout - user did not respond',
+                        'distance_meters': verification_result.get('distance_meters', 0)
+                    }
+                    pending_transactions[transaction_id]['status'] = 'completed'
+                    pending_transactions[transaction_id]['result'] = result
+                    
+                    socketio.emit('transaction_result', {
+                        'transaction_id': transaction_id,
+                        'result': result
+                    }, room=f"pos_{transaction_id}")
+            
+            # Start timeout in background
+            import threading
+            timeout_thread = threading.Thread(target=timeout_confirmation)
+            timeout_thread.daemon = True
+            timeout_thread.start()
+        else:
+            # Send result to POS
+            socketio.emit('transaction_result', {
+                'transaction_id': transaction_id,
+                'result': verification_result
+            }, room=f"pos_{transaction_id}")
+            
+            # Notify mobile app of new completed transaction
+            socketio.emit('transaction_completed', {
+                'transaction_id': transaction_id,
+                'card_token': card_token,
+                'transaction': completed_transactions[transaction_id]
+            }, room=f"card_{card_token}")
         
         print(f"Location proof processed for transaction: {transaction_id}")
         
     except Exception as e:
         emit('error', {'message': f'Processing error: {str(e)}'})
+
+@socketio.on('confirmation_response')
+def handle_confirmation_response(data):
+    """Handle confirmation response from mobile device"""
+    try:
+        transaction_id = data.get('transaction_id')
+        confirmed = data.get('confirmed')
+        
+        if not transaction_id:
+            emit('error', {'message': 'Missing transaction ID'})
+            return
+        
+        # Get pending transaction
+        if transaction_id not in pending_transactions:
+            emit('error', {'message': 'Transaction not found'})
+            return
+        
+        pending_tx = pending_transactions[transaction_id]
+        
+        # Update transaction based on confirmation
+        if confirmed:
+            # User confirmed - approve transaction
+            result = {
+                'success': True,
+                'result': 'ACCEPT',
+                'reason': 'User confirmed transaction',
+                'distance_meters': pending_tx.get('result', {}).get('distance_meters', 0)
+            }
+        else:
+            # User denied - reject transaction
+            result = {
+                'success': True,
+                'result': 'DENY',
+                'reason': 'User denied transaction',
+                'distance_meters': pending_tx.get('result', {}).get('distance_meters', 0)
+            }
+        
+        # Update transaction status
+        pending_transactions[transaction_id]['status'] = 'completed'
+        pending_transactions[transaction_id]['result'] = result
+        
+        # Store completed transaction in history
+        completed_transactions[transaction_id] = {
+            **pending_transactions[transaction_id],
+            'completed_at': datetime.utcnow().isoformat()
+        }
+        
+        # Send result to POS
+        socketio.emit('transaction_result', {
+            'transaction_id': transaction_id,
+            'result': result
+        }, room=f"pos_{transaction_id}")
+        
+        # Notify mobile app of new completed transaction
+        socketio.emit('transaction_completed', {
+            'transaction_id': transaction_id,
+            'card_token': pending_tx['card_token'],
+            'transaction': completed_transactions[transaction_id]
+        }, room=f"card_{pending_tx['card_token']}")
+        
+        print(f"Confirmation response processed for transaction: {transaction_id} - {'APPROVED' if confirmed else 'DENIED'}")
+        
+    except Exception as e:
+        emit('error', {'message': f'Confirmation processing error: {str(e)}'})
 
 def verify_location_proof(location_proof, pending_transaction):
     """Verify a location proof from mobile device"""
@@ -431,13 +556,13 @@ def verify_location_proof(location_proof, pending_transaction):
         # Decision logic based on distance and amount
         amount = pending_transaction.get('amount', 0)
         
-        if distance_meters <= 20:  # Within 20 meters
-            if amount > 100:  # High-value transaction requires confirmation
-                result = 'CONFIRM_REQUIRED'
-                reason = 'High-value transaction - confirmation required'
-            else:
+        if distance_meters <= 15:
+            if amount < 100:
                 result = 'ACCEPT'
-                reason = 'Co-located transaction'
+                reason = 'Co-located low-value transaction'
+            else:
+                result = 'CONFIRM_REQUIRED'
+                reason = 'High-value co-located transaction requires confirmation'
         elif distance_meters <= 500:  # Within 500 meters
             result = 'CONFIRM_REQUIRED'
             reason = 'Location mismatch - confirmation required'
@@ -1104,6 +1229,100 @@ def prove_location():
             'success': False,
             'result': 'DENY',
             'reason': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/api/transactions/history', methods=['GET'])
+def get_transaction_history():
+    """
+    Get transaction history for a card
+    ---
+    tags:
+      - Transactions
+    parameters:
+      - in: query
+        name: card_token
+        required: true
+        type: string
+        description: Card token to get history for
+        example: "4532-1234-5678-9012"
+      - in: query
+        name: limit
+        required: false
+        type: integer
+        description: Maximum number of transactions to return
+        example: 50
+    responses:
+      200:
+        description: Transaction history
+        schema:
+          type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  transaction_id:
+                    type: string
+                  card_token:
+                    type: string
+                  amount:
+                    type: number
+                  merchant_name:
+                    type: string
+                  timestamp:
+                    type: string
+                  completed_at:
+                    type: string
+                  status:
+                    type: string
+                  result:
+                    type: object
+      400:
+        description: Missing card token
+    """
+    try:
+        card_token = request.args.get('card_token')
+        limit = int(request.args.get('limit', 50))
+        
+        if not card_token:
+            return jsonify({
+                'error': 'Missing required parameter',
+                'required': ['card_token']
+            }), 400
+        
+        # Filter transactions for the specific card
+        card_transactions = []
+        for tx_id, tx_data in completed_transactions.items():
+            if tx_data.get('card_token') == card_token:
+                # Format transaction for mobile app
+                formatted_tx = {
+                    'id': tx_id,
+                    'card_token': tx_data.get('card_token'),
+                    'amount': tx_data.get('amount', 0),
+                    'merchant_name': tx_data.get('merchant_name', 'Unknown'),
+                    'timestamp': tx_data.get('timestamp'),
+                    'completed_at': tx_data.get('completed_at'),
+                    'status': tx_data.get('status', 'completed'),
+                    'result': tx_data.get('result', {}),
+                    'pos_location': tx_data.get('pos_location', {})
+                }
+                card_transactions.append(formatted_tx)
+        
+        # Sort by timestamp (most recent first) and limit
+        card_transactions.sort(key=lambda x: x['timestamp'], reverse=True)
+        card_transactions = card_transactions[:limit]
+        
+        return jsonify({
+            'transactions': card_transactions,
+            'total': len(card_transactions),
+            'card_token': card_token
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
         }), 500
 
 @app.route('/api/health', methods=['GET'])

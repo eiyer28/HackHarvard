@@ -12,6 +12,20 @@ export interface TransactionRequest {
   merchant_name: string;
 }
 
+export interface ConfirmationRequest {
+  transaction_id: string;
+  amount: number;
+  merchant_name: string;
+  distance_meters: number;
+  reason: string;
+}
+
+export interface TransactionCompletedEvent {
+  transaction_id: string;
+  card_token: string;
+  transaction: any;
+}
+
 export interface LocationProofResponse {
   transaction_id: string;
   location_proof: any;
@@ -21,6 +35,12 @@ class WebSocketService {
   private socket: Socket | null = null;
   private isConnected = false;
   private cardToken: string | null = null;
+  private confirmationCallback:
+    | ((request: ConfirmationRequest) => void)
+    | null = null;
+  private transactionCompletedCallback:
+    | ((event: TransactionCompletedEvent) => void)
+    | null = null;
 
   connect(serverUrl: string = "http://3.17.71.163:5000"): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -58,6 +78,23 @@ class WebSocketService {
           console.log("📱 Location proof requested:", data);
           this.handleLocationProofRequest(data);
         });
+
+        this.socket.on("confirmation_request", (data: ConfirmationRequest) => {
+          console.log("📱 Confirmation requested:", data);
+          if (this.confirmationCallback) {
+            this.confirmationCallback(data);
+          }
+        });
+
+        this.socket.on(
+          "transaction_completed",
+          (data: TransactionCompletedEvent) => {
+            console.log("📱 Transaction completed:", data);
+            if (this.transactionCompletedCallback) {
+              this.transactionCompletedCallback(data);
+            }
+          }
+        );
 
         this.socket.on("error", (data) => {
           console.error("🔌 Server error:", data.message);
@@ -199,6 +236,32 @@ class WebSocketService {
 
   getCardToken(): string | null {
     return this.cardToken;
+  }
+
+  setConfirmationCallback(
+    callback: (request: ConfirmationRequest) => void
+  ): void {
+    this.confirmationCallback = callback;
+  }
+
+  setTransactionCompletedCallback(
+    callback: (event: TransactionCompletedEvent) => void
+  ): void {
+    this.transactionCompletedCallback = callback;
+  }
+
+  sendConfirmationResponse(transactionId: string, confirmed: boolean): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit("confirmation_response", {
+        transaction_id: transactionId,
+        confirmed: confirmed,
+      });
+      console.log(
+        `📱 Confirmation response sent: ${
+          confirmed ? "APPROVED" : "DENIED"
+        } for transaction ${transactionId}`
+      );
+    }
   }
 }
 
