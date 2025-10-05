@@ -76,15 +76,54 @@ class WebSocketService {
     }
   }
 
-  registerPhone(cardToken: string): void {
-    if (!this.socket || !this.isConnected) {
-      console.error("❌ WebSocket not connected");
-      return;
-    }
+  registerPhone(cardToken: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket || !this.isConnected) {
+        const error = "❌ WebSocket not connected";
+        console.error(error);
+        reject(new Error(error));
+        return;
+      }
 
-    this.cardToken = cardToken;
-    this.socket.emit("register_phone", { card_token: cardToken });
-    console.log("📱 Registering phone for card:", cardToken);
+      this.cardToken = cardToken;
+
+      // Set up one-time listener for registration response
+      const handleRegistered = (data: any) => {
+        console.log("📱 Phone registration successful:", data.message);
+        this.socket?.off("registered", handleRegistered);
+        this.socket?.off("error", handleError);
+        resolve();
+      };
+
+      const handleError = (data: any) => {
+        console.error("📱 Phone registration failed:", data.message);
+        this.socket?.off("registered", handleRegistered);
+        this.socket?.off("error", handleError);
+        reject(new Error(data.message));
+      };
+
+      // Set up listeners
+      this.socket.on("registered", handleRegistered);
+      this.socket.on("error", handleError);
+
+      // Emit registration request
+      console.log("📱 About to emit register_phone event with data:", {
+        card_token: cardToken,
+      });
+      console.log("📱 Socket connected:", this.socket?.connected);
+      console.log("📱 Socket ID:", this.socket?.id);
+
+      this.socket.emit("register_phone", { card_token: cardToken });
+      console.log("📱 Registering phone for card:", cardToken);
+      console.log("📱 Event emitted successfully");
+
+      // Set timeout for registration
+      setTimeout(() => {
+        this.socket?.off("registered", handleRegistered);
+        this.socket?.off("error", handleError);
+        reject(new Error("Phone registration timeout"));
+      }, 10000);
+    });
   }
 
   private async handleLocationProofRequest(

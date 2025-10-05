@@ -164,7 +164,10 @@ def verify_signature(data, signature, private_key):
 @socketio.on('connect')
 def handle_connect():
     """Handle WebSocket connection"""
-    print(f"Client connected: {request.sid}")
+    print(f"\n=== WEBSOCKET CONNECTION DEBUG ===")
+    print(f"✅ Client connected: {request.sid}")
+    print(f"Current active connections: {list(active_connections.keys())}")
+    print(f"=== END CONNECTION DEBUG ===\n")
     emit('connected', {'message': 'Connected to ProxyPay server'})
 
 @socketio.on('disconnect')
@@ -192,13 +195,21 @@ def handle_join_room(data):
 def handle_register_phone(data):
     """Register a phone with its card token"""
     try:
+        print(f"\n=== PHONE REGISTRATION DEBUG ===")
+        print(f"Received data: {data}")
+        print(f"Session ID: {request.sid}")
+        print(f"Current active connections: {list(active_connections.keys())}")
+        print(f"Device registry keys: {list(device_registry.keys())}")
+        
         card_token = data.get('card_token')
         if not card_token:
+            print(f"ERROR: No card token provided")
             emit('error', {'message': 'Card token required'})
             return
         
         # Check if device is registered
         if card_token not in device_registry:
+            print(f"ERROR: Device not registered for card {card_token}")
             emit('error', {'message': 'Device not registered. Please register device first.'})
             return
         
@@ -206,10 +217,15 @@ def handle_register_phone(data):
         active_connections[card_token] = request.sid
         join_room(f"card_{card_token}")
         
-        print(f"Phone registered for card: {card_token}")
+        print(f"✅ Phone registered for card: {card_token}")
+        print(f"✅ Session ID: {request.sid}")
+        print(f"✅ Active connections now: {list(active_connections.keys())}")
+        print(f"=== END PHONE REGISTRATION DEBUG ===\n")
+        
         emit('registered', {'message': f'Phone registered for card {card_token}'})
         
     except Exception as e:
+        print(f"❌ Registration error: {str(e)}")
         emit('error', {'message': f'Registration error: {str(e)}'})
 
 @socketio.on('request_location_proof')
@@ -229,6 +245,8 @@ def handle_request_location_proof(data):
         
         # Check if phone is connected
         if card_token not in active_connections:
+            print(f"ERROR: Phone not connected for card {card_token}")
+            print(f"Active connections: {list(active_connections.keys())}")
             emit('error', {'message': 'Phone not connected for this card'})
             return
         
