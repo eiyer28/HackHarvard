@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import * as React from "react";
+import { useState } from "react";
 import { StyleSheet, View, Pressable, Modal } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -9,10 +10,11 @@ type Props = {
   date: string; // ISO or display string
   location?: string;
   amount?: string; // optional display amount like "$12.34"
+  status?: string; // status icon like "✅", "❌", "⚠️"
   onPress?: () => void;
 };
 
-export function Transaction({ card, date, location, amount }: Props) {
+export function Transaction({ card, date, location, amount, status }: Props) {
   const [visible, setVisible] = useState(false);
   const background = useThemeColor({}, "background") ?? "#fff";
 
@@ -54,6 +56,7 @@ export function Transaction({ card, date, location, amount }: Props) {
             <ThemedText type="default" style={styles.date}>
               {date}
             </ThemedText>
+            {status && <ThemedText style={styles.status}>{status}</ThemedText>}
           </View>
         </ThemedView>
       </Pressable>
@@ -170,6 +173,10 @@ const styles = StyleSheet.create({
   },
   date: {
     color: "#666",
+  },
+  status: {
+    fontSize: 16,
+    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,

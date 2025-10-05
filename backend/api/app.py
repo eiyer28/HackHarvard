@@ -120,6 +120,12 @@ active_connections = {}
 # Pending transactions waiting for location proofs
 pending_transactions = {}
 
+# Completed transaction history (persistent storage)
+completed_transactions = {}
+
+# Pending 2FA transactions
+pending_2fa_transactions = {}
+
 # Mock attestation verification (for hackathon)
 def verify_attestation(attestation_token):
     """Verify device attestation token (mock for hackathon)"""
@@ -301,6 +307,12 @@ def handle_location_proof_response(data):
         pending_transactions[transaction_id]['status'] = 'completed'
         pending_transactions[transaction_id]['result'] = verification_result
         
+        # Store completed transaction in history
+        completed_transactions[transaction_id] = {
+            **pending_transactions[transaction_id],
+            'completed_at': datetime.utcnow().isoformat()
+        }
+        
         # Handle different result types
         if verification_result['result'] == 'CONFIRM_REQUIRED':
             # Send confirmation request to mobile app
@@ -349,7 +361,14 @@ def handle_location_proof_response(data):
                 'result': verification_result
             }, room=f"pos_{transaction_id}")
             
-            print(f"Location proof processed for transaction: {transaction_id}")
+            # Notify mobile app of new completed transaction
+            socketio.emit('transaction_completed', {
+                'transaction_id': transaction_id,
+                'card_token': card_token,
+                'transaction': completed_transactions[transaction_id]
+            }, room=f"card_{card_token}")
+        
+        print(f"Location proof processed for transaction: {transaction_id}")
         
     except Exception as e:
         emit('error', {'message': f'Processing error: {str(e)}'})
@@ -394,11 +413,24 @@ def handle_confirmation_response(data):
         pending_transactions[transaction_id]['status'] = 'completed'
         pending_transactions[transaction_id]['result'] = result
         
+        # Store completed transaction in history
+        completed_transactions[transaction_id] = {
+            **pending_transactions[transaction_id],
+            'completed_at': datetime.utcnow().isoformat()
+        }
+        
         # Send result to POS
         socketio.emit('transaction_result', {
             'transaction_id': transaction_id,
             'result': result
         }, room=f"pos_{transaction_id}")
+        
+        # Notify mobile app of new completed transaction
+        socketio.emit('transaction_completed', {
+            'transaction_id': transaction_id,
+            'card_token': pending_tx['card_token'],
+            'transaction': completed_transactions[transaction_id]
+        }, room=f"card_{pending_tx['card_token']}")
         
         print(f"Confirmation response processed for transaction: {transaction_id} - {'APPROVED' if confirmed else 'DENIED'}")
         
@@ -1185,6 +1217,100 @@ def prove_location():
             'success': False,
             'result': 'DENY',
             'reason': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/api/transactions/history', methods=['GET'])
+def get_transaction_history():
+    """
+    Get transaction history for a card
+    ---
+    tags:
+      - Transactions
+    parameters:
+      - in: query
+        name: card_token
+        required: true
+        type: string
+        description: Card token to get history for
+        example: "4532-1234-5678-9012"
+      - in: query
+        name: limit
+        required: false
+        type: integer
+        description: Maximum number of transactions to return
+        example: 50
+    responses:
+      200:
+        description: Transaction history
+        schema:
+          type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  transaction_id:
+                    type: string
+                  card_token:
+                    type: string
+                  amount:
+                    type: number
+                  merchant_name:
+                    type: string
+                  timestamp:
+                    type: string
+                  completed_at:
+                    type: string
+                  status:
+                    type: string
+                  result:
+                    type: object
+      400:
+        description: Missing card token
+    """
+    try:
+        card_token = request.args.get('card_token')
+        limit = int(request.args.get('limit', 50))
+        
+        if not card_token:
+            return jsonify({
+                'error': 'Missing required parameter',
+                'required': ['card_token']
+            }), 400
+        
+        # Filter transactions for the specific card
+        card_transactions = []
+        for tx_id, tx_data in completed_transactions.items():
+            if tx_data.get('card_token') == card_token:
+                # Format transaction for mobile app
+                formatted_tx = {
+                    'id': tx_id,
+                    'card_token': tx_data.get('card_token'),
+                    'amount': tx_data.get('amount', 0),
+                    'merchant_name': tx_data.get('merchant_name', 'Unknown'),
+                    'timestamp': tx_data.get('timestamp'),
+                    'completed_at': tx_data.get('completed_at'),
+                    'status': tx_data.get('status', 'completed'),
+                    'result': tx_data.get('result', {}),
+                    'pos_location': tx_data.get('pos_location', {})
+                }
+                card_transactions.append(formatted_tx)
+        
+        # Sort by timestamp (most recent first) and limit
+        card_transactions.sort(key=lambda x: x['timestamp'], reverse=True)
+        card_transactions = card_transactions[:limit]
+        
+        return jsonify({
+            'transactions': card_transactions,
+            'total': len(card_transactions),
+            'card_token': card_token
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
         }), 500
 
 @app.route('/api/health', methods=['GET'])
